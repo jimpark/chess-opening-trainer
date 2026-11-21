@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { OpeningBook } from "./book";
-import { explore, searchLines } from "./explore";
+import { explore, sanLine, searchLines } from "./explore";
 
 function sampleBook(): OpeningBook {
   const book = new OpeningBook();
@@ -63,5 +63,12 @@ describe("searchLines", () => {
   it("matches every word against name and ECO", () => {
     const names = searchLines(sampleBook(), "declined d30").map((l) => l.name);
     expect(names).toEqual(["Queen's Gambit Declined", "Queen's Gambit Declined (English order)"]);
+  });
+});
+
+describe("sanLine", () => {
+  it("converts UCI to SAN and stops at an illegal move", () => {
+    const fen = "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2";
+    expect(sanLine(fen, ["g1f3", "b8c6", "f1b5", "a1a8"])).toEqual(["Nf3", "Nc6", "Bb5"]);
   });
 });

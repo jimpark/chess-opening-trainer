@@ -1,5 +1,5 @@
 import type { Position } from "chessops/chess";
-import { makeFen } from "chessops/fen";
+import { makeFen, parseFen } from "chessops/fen";
 import { makeSanAndPlay } from "chessops/san";
 import { parseUci } from "chessops/util";
 import { Chess } from "chessops/chess";
@@ -117,4 +117,19 @@ export function searchLines(book: OpeningBook, query: string, limit = 50): BookL
   });
   hits.sort((x, y) => x.ucis.length - y.ucis.length || x.name.localeCompare(y.name));
   return hits.slice(0, limit);
+}
+
+/** SAN for a sequence of UCI moves from `fen`. Stops at the first illegal move. */
+export function sanLine(fen: string, ucis: string[]): string[] {
+  const setup = parseFen(fen);
+  if (setup.isErr) return [];
+  const pos = Chess.fromSetup(setup.value);
+  if (pos.isErr) return [];
+  const sans: string[] = [];
+  for (const uci of ucis) {
+    const move = parseUci(uci);
+    if (!move || !pos.value.isLegal(move)) break;
+    sans.push(makeSanAndPlay(pos.value, move));
+  }
+  return sans;
 }

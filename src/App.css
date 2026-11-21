@@ -419,3 +419,102 @@ button.primary {
   opacity: 1;
   cursor: default;
 }
+
+/* Engine */
+
+.board-row {
+  display: flex;
+  gap: 8px;
+}
+
+.evalbar {
+  position: relative;
+  width: 22px;
+  background: #3a3a3a;
+  border-radius: 3px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+.evalbar.black {
+  flex-direction: column;
+}
+
+.evalbar-white {
+  background: #f0f0f0;
+  transition: height 0.3s;
+}
+
+.evalbar-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  text-align: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: #888;
+  writing-mode: vertical-rl;
+  transform: translateY(-50%);
+}
+
+.board-row .board {
+  width: min(calc(100vh - 150px), calc(100vw - 430px));
+}
+
+.study .board-row .board {
+  width: min(calc(100vh - 200px), calc(100vw - 430px));
+}
+
+.controls button.on {
+  background: var(--current);
+  font-weight: 600;
+}
+
+.engine-lines li {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 3px 0;
+}
+
+.engine-lines .score {
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+  min-width: 52px;
+}
+
+.pv .move {
+  padding: 0 2px;
+}
+
+.pv .move:not(:disabled):hover {
+  background: var(--hover);
+}
+
+.engine-compare {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 6px;
+}
+
+.engine-compare td {
+  padding: 2px 6px 2px 0;
+}
+
+.engine-compare .score {
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+  text-align: right;
+}
+
+.preview-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: var(--hover);
+}

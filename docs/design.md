@@ -1,6 +1,6 @@
 # Chess Opening Trainer: Design
 
-Status: milestone 2 complete, 2026-11-20
+Status: milestone 3 complete, 2026-11-20
 
 ## Goal
 
@@ -23,7 +23,7 @@ target them.
 | Opening data | Lichess `chess-openings` dataset (CC0), plus PGN import |
 | Storage | Opening book: in memory, built from bundled TSVs at startup. User data: SQLite through `tauri-plugin-sql`. Offline only. |
 | Spaced repetition | FSRS through `ts-fsrs` (MIT) |
-| Engine | Stockfish, bundled as a Tauri sidecar, UCI over stdin/stdout |
+| Engine | Stockfish 19, bundled as a Tauri sidecar, UCI over stdin/stdout |
 | Project license | GPL-3.0 (changed from MIT; see Licensing) |
 | Tests | Vitest for TypeScript core logic, `cargo test` for the Rust side |
 
@@ -144,7 +144,10 @@ The board draws an arrow for each book move when there are five or fewer, and al
 move under the mouse. Keys: ← and → step through the move list, Home and End jump to its ends,
 F flips the board. Moving back keeps the later moves until a different move is played.
 
-The engine evaluation bar is optional and toggled here (milestone 3).
+The Engine button (or E) turns on Stockfish: an evaluation bar beside the board, a blue arrow
+for the best move, and the top three lines with scores. Clicking a move in a line plays the line
+up to that move on the board. Analysis stops at depth 24 so an idle board does not keep the CPU
+busy.
 
 ### Study tree
 
@@ -188,12 +191,19 @@ Move outcomes:
 | A book move of this opening at this position | Correct. Quiz continues. |
 | A move that reaches a position elsewhere in this opening's tree (a transposition) | Correct. The app names the line and continues from there. |
 | A book move outside this opening | Not a mistake. "That is a book move (name), but it leaves the opening. Try again." A yellow arrow marks the move, and the board takes it back. |
-| Not a book move | "Wrong. Try again." A red arrow marks the move, and the board takes it back. Milestone 3 adds the engine evaluation of the move played next to the book move's, and the engine's principal variation after the wrong move, as clickable moves. |
+| Not a book move | "Wrong. Try again." A red arrow marks the move, and the board takes it back. |
 
 Hint button, per user turn:
 
 1. First click highlights the piece to move.
 2. Second click draws the move arrow.
+
+For a wrong move or a book move outside the opening, the panel shows an engine comparison: the
+score of the move played, the score of the best book move, the difference in pawns for the side
+that moved, and the engine's line after the move played. One search with `searchmoves` scores
+the played move and every book move together, so the scores are comparable. The comparison does
+not name the book move, so the user can still find it; the hint reveals it. Clicking a move in
+the engine line shows that position on the board until the user clicks "Back to quiz".
 
 Each correct move records a grade for the position: "good" with no mistakes and no hint, "hard"
 after the first hint, "again" after a mistake or the full hint. The panel shows first-try moves
@@ -222,18 +232,30 @@ A card is a position where the user is to move, in a given repertoire. Grading:
 
 ## Engine
 
-The Rust side owns the Stockfish process.
+Stockfish 19 runs as a separate process. The Rust side only starts it and passes lines; the UCI
+protocol lives in TypeScript (`src/core/uci.ts`), so a WebAssembly build of Stockfish can reuse
+it for web.
 
-- Stockfish is bundled per platform as a Tauri sidecar: `stockfish-aarch64-apple-darwin`,
-  `stockfish-x86_64-apple-darwin` and `stockfish-x86_64-pc-windows-msvc.exe`. The binaries embed
-  the NNUE network, which adds tens of MB per platform.
-- Tauri commands: `engine_analyze(fen, depth, multipv)` and `engine_stop()`. The Rust side emits
-  `engine-info` events for each UCI `info` line and `engine-done` with the final result.
-- The TypeScript side calls the engine through an `Engine` interface, so a WASM build of
-  Stockfish can replace the sidecar for web.
-- Results at the requested depth are cached in `engine_cache` by EPD.
-- Defaults: depth 18 for wrong-move feedback, infinite analysis in Explore until stopped.
-  Threads and hash size are settings.
+- **Binaries.** `npm run fetch-stockfish` downloads the official release for the host (or for
+  the target triples given as arguments), checks its SHA-256, and installs it as
+  `src-tauri/binaries/stockfish-<target triple>`. On macOS it extracts the target architecture
+  from the universal binary with `lipo`. The binaries are not committed. `tauri dev` and
+  `tauri build` run the script first. Each binary is about 100 MB because the network is
+  embedded; the macOS app bundle is 101 MB. Stockfish's license ships in the bundle as
+  `licenses/stockfish-COPYING.txt`.
+- **Rust** (`src-tauri/src/lib.rs`). One command, `engine_send(line)`, starts the sidecar on
+  first use and writes the line to its stdin. Each stdout line is emitted as an `engine-line`
+  event; `engine-exit` reports that the process ended, and the next command restarts it. The
+  app kills the process on exit.
+- **TypeScript.** `UciSession` sends `uci`, sets `Threads` (half the cores) and `Hash` (128 MB),
+  and waits for `readyok`. `analyze(fen, {depth, multipv, searchmoves})` returns the lines with
+  scores converted to White's point of view, and reports progress after each depth. Starting a
+  search stops the running one. `src/platform/engine.ts` picks the transport: Tauri events in
+  the app, or a Vite dev server bridge (`devEngine` in `vite.config.ts`) when the UI runs in a
+  browser during development.
+- **Depths.** 16 for quiz feedback, which takes under a second; 24 in Explore.
+- **Not done.** Results are not cached; `engine_cache` arrives with SQLite in milestone 4.
+  Threads and hash size are fixed until there is a settings screen.
 
 ## Architecture
 
@@ -241,12 +263,12 @@ The Rust side owns the Stockfish process.
 src/
   core/        pure TypeScript, no Tauri imports: book graph (book.ts), Explore queries
                (explore.ts), study tree (study.ts), quiz state and grading (quiz.ts),
-               later SRS scheduling and PGN import
-  platform/    interfaces (Engine, Storage) and their Tauri implementations
-  ui/          React components: board, move panel, search, mode screens
+               UCI protocol (uci.ts), later SRS scheduling and PGN import
+  platform/    engine transports (engine.ts), later SQLite storage
+  ui/          React components: board, move panel, search, mode screens, engine views
 src-tauri/
   src/         engine process management, Tauri commands
-  binaries/    Stockfish sidecars
+  binaries/    Stockfish sidecars, installed by scripts/fetch-stockfish.mjs (not committed)
 data/
   lichess/     Lichess TSVs at a pinned commit, CC0
 ```
@@ -273,7 +295,7 @@ without the app shell.
 1. Tauri scaffold, GPL relicense, board, in-memory opening book, Explore mode with name search.
    Done.
 2. Learn and Quiz modes with hints and branch selection. Done.
-3. Stockfish sidecar and wrong-move feedback.
+3. Stockfish sidecar and wrong-move feedback. Done.
 4. SRS cards, Review mode.
 5. Search by moves and FEN, PGN import, comment editing.
 

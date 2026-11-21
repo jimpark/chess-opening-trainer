@@ -18,6 +18,13 @@ import {
 import { doneLeafCount, pathTo, subtreeDone, type StudyTree } from "../core/study";
 import { Board } from "./Board";
 import { arrow, circle, MoveList, PositionTitle } from "./common";
+import { lossInPawns, PvMoves, useAnalysis } from "./engineView";
+import { makeFen } from "chessops/fen";
+import { sanLine } from "../core/explore";
+import { formatScore, scoreValue } from "../core/uci";
+
+/** Search depth for judging a move the user played. */
+const MISTAKE_DEPTH = 16;
 
 /** Delay before the app plays the opponent's move, so the user sees it happen. */
 const OPPONENT_DELAY_MS = 500;
@@ -31,6 +38,9 @@ interface Props {
 export function QuizView({ book, tree, color }: Props) {
   const [s, setS] = useState<QuizState>(() => startQuiz(tree, color));
   const [auto, setAuto] = useState(false);
+  /** Engine line shown on the board, as UCI moves from the current position. */
+  const [preview, setPreview] = useState<string[] | undefined>();
+  useEffect(() => setPreview(undefined), [s]);
 
   const node = tree.nodes[s.nodeId];
   const turn = turnOf(tree, s);
@@ -61,17 +71,20 @@ export function QuizView({ book, tree, color }: Props) {
   }, [s.feedback, s.hintLevel, expected]);
 
   const goodCount = s.results.filter((r) => r.grade === "good").length;
+  const previewPos = useMemo(() => (preview ? replay([...node.ucis, ...preview]) : undefined), [node, preview]);
+  const fb = s.feedback;
+  const judged = fb?.kind === "wrong" || fb?.kind === "otherBook" ? fb.uci : undefined;
 
   return (
     <div className="explore">
       <div className="board-column">
         <Board
-          pos={pos}
-          fen={node.fen}
+          pos={previewPos ?? pos}
+          fen={previewPos ? makeFen(previewPos.toSetup()) : node.fen}
           orientation={color}
-          lastMove={node.ucis.at(-1)}
-          shapes={shapes}
-          interactive={turn === "user"}
+          lastMove={preview ? preview.at(-1) : node.ucis.at(-1)}
+          shapes={previewPos ? [] : shapes}
+          interactive={turn === "user" && !previewPos}
           onMove={(uci) => setS((cur) => userMove(tree, book, cur, uci))}
         />
         <div className="controls">
@@ -102,6 +115,22 @@ export function QuizView({ book, tree, color }: Props) {
         </section>
 
         <Feedback s={s} family={tree.family} />
+
+        {preview && (
+          <div className="preview-banner">
+            <span>Showing the engine line on the board.</span>
+            <button className="primary" onClick={() => setPreview(undefined)}>Back to quiz</button>
+          </div>
+        )}
+
+        {judged && (
+          <MoveJudgement
+            fen={node.fen}
+            played={judged}
+            book={node.children.map((c) => c.ucis.at(-1)!)}
+            onPreview={setPreview}
+          />
+        )}
 
         {turn === "user" && (
           <section>
@@ -180,4 +209,67 @@ function Feedback({ s, family }: { s: QuizState; family: string }) {
     case "complete":
       return <p className="feedback good">Line complete: {fb.name ?? "end of book"}.</p>;
   }
+}
+
+/**
+ * Engine comparison of the move the user played with this position's book moves, searched
+ * together with searchmoves so the scores are comparable. Book moves are not named, so the user
+ * can still find the answer.
+ */
+function MoveJudgement(props: { fen: string; played: string; book: string[]; onPreview: (ucis: string[]) => void }) {
+  const { fen, played, book, onPreview } = props;
+  const moves = [played, ...book];
+  const { available, analysis, running } = useAnalysis(
+    fen,
+    { depth: MISTAKE_DEPTH, multipv: moves.length, searchmoves: moves },
+    `${fen} ${moves.join(" ")}`,
+  );
+  if (!available) return null;
+
+  const whiteToMove = fen.split(" ")[1] === "w";
+  const byMove = new Map(analysis?.fen === fen ? analysis.lines.map((l) => [l.pv[0], l]) : []);
+  const mine = byMove.get(played);
+  const sign = whiteToMove ? 1 : -1;
+  const bestBook = book
+    .map((m) => byMove.get(m))
+    .filter((l) => l !== undefined)
+    .sort((a, b) => sign * (scoreValue(b.score) - scoreValue(a.score)))[0];
+  const loss = mine && bestBook ? lossInPawns(mine.score, bestBook.score, whiteToMove) : undefined;
+  const playedSan = sanLine(fen, [played])[0];
+
+  return (
+    <section>
+      <h2>
+        Engine{analysis ? ` · depth ${analysis.depth}` : ""}
+        {running ? "…" : ""}
+      </h2>
+      {!mine || !bestBook ? (
+        <p className="muted">Analyzing…</p>
+      ) : (
+        <>
+          <table className="engine-compare">
+            <tbody>
+              <tr>
+                <td>Your move {playedSan}</td>
+                <td className="score">{formatScore(mine.score)}</td>
+              </tr>
+              <tr>
+                <td>Best book move</td>
+                <td className="score">{formatScore(bestBook.score)}</td>
+              </tr>
+            </tbody>
+          </table>
+          {loss !== undefined && (
+            <p className="muted">
+              {loss > 0.15
+                ? `${playedSan} gives up about ${loss.toFixed(1)} pawns compared with the book.`
+                : `${playedSan} is about as good as the book move by the engine's measure, but it is not the book move.`}
+            </p>
+          )}
+          <p className="muted">Engine line after {playedSan}. Click a move to see it on the board:</p>
+          <PvMoves fen={fen} pv={mine.pv} max={12} onSelect={onPreview} />
+        </>
+      )}
+    </section>
+  );
 }
