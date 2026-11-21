@@ -83,16 +83,26 @@ export function ImportDialog({ book, db, color, onImported, onCancel }: Props) {
       </p>
       <label>
         Name
-        <input className="search" value={name} onChange={(e) => setName(e.target.value)} placeholder="My Italian repertoire" />
+        <input
+          className="search"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="My Italian repertoire"
+        />
       </label>
       <label>
-        PGN file <input type="file" accept=".pgn,text/plain" onChange={(e) => e.target.files?.[0] && readFile(e.target.files[0])} />
+        PGN file{" "}
+        <input
+          type="file"
+          accept=".pgn,text/plain"
+          onChange={(e) => e.target.files?.[0] && readFile(e.target.files[0])}
+        />
       </label>
       <textarea
         className="pgn"
         value={pgn}
         onChange={(e) => setPgn(e.target.value)}
-        placeholder={'Or paste PGN here, for example:\n1. e4 e5 2. Nf3 Nc6 3. Bc4 {Aim at f7.} Bc5 (3... Nf6 4. d3) *'}
+        placeholder={"Or paste PGN here, for example:\n1. e4 e5 2. Nf3 Nc6 3. Bc4 {Aim at f7.} Bc5 (3... Nf6 4. d3) *"}
         rows={8}
       />
       {error && <p className="feedback bad">{error}</p>}

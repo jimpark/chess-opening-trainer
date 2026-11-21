@@ -20,7 +20,10 @@ function tauriTransport(): Transport {
   return {
     // Chained so commands reach the engine in order.
     send: (line) => {
-      chain = chain.then(() => listening).then(() => invoke("engine_send", { line })).catch((e) => console.error("engine_send", e));
+      chain = chain
+        .then(() => listening)
+        .then(() => invoke("engine_send", { line }))
+        .catch((e) => console.error("engine_send", e));
     },
     onLine: (cb) => lineHandlers.push(cb),
     onExit: (cb) => exitHandlers.push(cb),
@@ -42,9 +45,11 @@ function transport(): Transport | undefined {
   return undefined;
 }
 
-function engineOptions(): Record<string, number> {
+function engineOptions(): Record<string, number | string> {
   const cores = navigator.hardwareConcurrency || 2;
-  return { Threads: Math.max(1, Math.floor(cores / 2)), Hash: 128 };
+  // UCI_Chess960 makes Stockfish read and write castling as king-takes-rook (e1h1), the form
+  // chessops and the book use; otherwise it ignores e1h1 in searchmoves and prints e1g1.
+  return { Threads: Math.max(1, Math.floor(cores / 2)), Hash: 128, UCI_Chess960: "true" };
 }
 
 let session: UciSession | undefined;

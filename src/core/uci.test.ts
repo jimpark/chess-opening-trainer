@@ -149,4 +149,18 @@ describe.runIf(process.platform === "darwin" && existsSync(binary))("Stockfish",
       proc.kill();
     }
   }, 30_000);
+
+  it("searches and prints castling as king-takes-rook with UCI_Chess960", async () => {
+    const proc = spawn(binary);
+    const session = new UciSession((l) => proc.stdin.write(`${l}\n`), { Threads: 1, Hash: 16, UCI_Chess960: "true" });
+    createInterface({ input: proc.stdout }).on("line", (l) => session.receive(l));
+    try {
+      // Italian Game after 3...Bc5: castling and d3 are both book moves.
+      const fen = "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4";
+      const a = await session.analyze(fen, { depth: 8, multipv: 2, searchmoves: ["e1h1", "d2d3"] }).result;
+      expect(a.lines.map((l) => l.pv[0]).sort()).toEqual(["d2d3", "e1h1"]);
+    } finally {
+      proc.kill();
+    }
+  }, 30_000);
 });

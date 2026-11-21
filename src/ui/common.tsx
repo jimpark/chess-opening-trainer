@@ -55,7 +55,15 @@ export interface PathMove {
 }
 
 /** Numbered move list. Moves are clickable when `onSelect` is given. */
-export function MoveList({ moves, currentId, onSelect }: { moves: PathMove[]; currentId: number; onSelect?: (id: number) => void }) {
+export function MoveList({
+  moves,
+  currentId,
+  onSelect,
+}: {
+  moves: PathMove[];
+  currentId: number;
+  onSelect?: (id: number) => void;
+}) {
   if (moves.length === 0) return <p className="muted">None</p>;
   const item = (m: PathMove) => (
     <button

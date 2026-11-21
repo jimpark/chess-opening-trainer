@@ -17,7 +17,12 @@ function sample() {
   book.addLine("C55", "Italian Game: Two Knights", ["e4", "e5", "Nf3", "Nc6", "Bc4", "Nf6", "Ng5"]);
   const tree = buildStudyTree(book, "Italian Game");
   const at = (...sans: string[]) =>
-    tree.nodes.find((n) => pathTo(n).map((p) => p.san).join(" ") === sans.join(" "))!;
+    tree.nodes.find(
+      (n) =>
+        pathTo(n)
+          .map((p) => p.san)
+          .join(" ") === sans.join(" "),
+    )!;
   return { book, tree, at };
 }
 
@@ -26,7 +31,10 @@ describe("review", () => {
     const { tree, at } = sample();
     // White moves at: start, after e5, after Nc6, after Bc5, after Nf6.
     expect(userNodes(tree, "white").length).toBe(5);
-    const cards = new Map([[at().epd, due()], [at("e4", "e5").epd, later()]]);
+    const cards = new Map([
+      [at().epd, due()],
+      [at("e4", "e5").epd, later()],
+    ]);
     expect(countCards(tree, "white", cards, NOW)).toEqual({ positions: 5, fresh: 3, due: 1 });
   });
 
@@ -34,7 +42,11 @@ describe("review", () => {
     const { tree, at } = sample();
     const afterBc5 = at("e4", "e5", "Nf3", "Nc6", "Bc4", "Bc5");
     const afterNf6 = at("e4", "e5", "Nf3", "Nc6", "Bc4", "Nf6");
-    const cards = new Map([[at().epd, due()], [afterBc5.epd, due()], [afterNf6.epd, due()]]);
+    const cards = new Map([
+      [at().epd, due()],
+      [afterBc5.epd, due()],
+      [afterNf6.epd, due()],
+    ]);
     const plan = planReview(tree, "white", cards, NOW);
     expect(plan.length).toBe(2);
     expect(plan.map((l) => l.san).sort()).toEqual(["Ng5", expect.stringMatching(/c3|d3/)].sort());
@@ -42,9 +54,18 @@ describe("review", () => {
 
   it("ends a review line after the user's move at the last due position", () => {
     const { tree, at } = sample();
-    const cards = new Map([[at().epd, due()], [at("e4", "e5").epd, due()]]);
+    const cards = new Map([
+      [at().epd, due()],
+      [at("e4", "e5").epd, due()],
+    ]);
     const plan = planReview(tree, "white", cards, NOW);
-    expect(plan.map((n) => pathTo(n).map((p) => p.san).join(" "))).toEqual(["e4 e5 Nf3"]);
+    expect(
+      plan.map((n) =>
+        pathTo(n)
+          .map((p) => p.san)
+          .join(" "),
+      ),
+    ).toEqual(["e4 e5 Nf3"]);
     expect(planReview(tree, "white", new Map(), NOW)).toEqual([]);
   });
 

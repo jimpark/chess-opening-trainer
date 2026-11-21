@@ -43,9 +43,7 @@ export function ExploreView({ book, db }: { book: OpeningBook; db: Db | undefine
 
   const play = useCallback((uci: string) => {
     setCursor(({ moves, ply }) =>
-      moves[ply] === uci
-        ? { moves, ply: ply + 1 }
-        : { moves: [...moves.slice(0, ply), uci], ply: ply + 1 },
+      moves[ply] === uci ? { moves, ply: ply + 1 } : { moves: [...moves.slice(0, ply), uci], ply: ply + 1 },
     );
   }, []);
 
@@ -87,22 +85,36 @@ export function ExploreView({ book, db }: { book: OpeningBook; db: Db | undefine
     <div className="explore">
       <div className="board-column">
         <div className="board-row">
-        {engineOn && <EvalBar score={best?.score} orientation={orientation} />}
-        <Board
-          pos={state.pos}
-          fen={state.fen}
-          orientation={orientation}
-          lastMove={path[path.length - 1]}
-          shapes={shapes}
-          onMove={play}
-        />
+          {engineOn && <EvalBar score={best?.score} orientation={orientation} />}
+          <Board
+            pos={state.pos}
+            fen={state.fen}
+            orientation={orientation}
+            lastMove={path[path.length - 1]}
+            shapes={shapes}
+            onMove={play}
+          />
         </div>
         <div className="controls">
-          <button onClick={() => goTo(0)} disabled={cursor.ply === 0} title="Start (Home)">⏮</button>
-          <button onClick={() => goTo(cursor.ply - 1)} disabled={cursor.ply === 0} title="Back (←)">◀</button>
-          <button onClick={() => goTo(cursor.ply + 1)} disabled={cursor.ply >= cursor.moves.length} title="Forward (→)">▶</button>
-          <button onClick={() => goTo(cursor.moves.length)} disabled={cursor.ply >= cursor.moves.length} title="End (End)">⏭</button>
-          <button onClick={() => setOrientation((o) => (o === "white" ? "black" : "white"))} title="Flip board (F)">⇅ Flip</button>
+          <button onClick={() => goTo(0)} disabled={cursor.ply === 0} title="Start (Home)">
+            ⏮
+          </button>
+          <button onClick={() => goTo(cursor.ply - 1)} disabled={cursor.ply === 0} title="Back (←)">
+            ◀
+          </button>
+          <button onClick={() => goTo(cursor.ply + 1)} disabled={cursor.ply >= cursor.moves.length} title="Forward (→)">
+            ▶
+          </button>
+          <button
+            onClick={() => goTo(cursor.moves.length)}
+            disabled={cursor.ply >= cursor.moves.length}
+            title="End (End)"
+          >
+            ⏭
+          </button>
+          <button onClick={() => setOrientation((o) => (o === "white" ? "black" : "white"))} title="Flip board (F)">
+            ⇅ Flip
+          </button>
           <button
             className={engineOn ? "on" : ""}
             onClick={() => setEngineOn((on) => !on)}
@@ -162,9 +174,7 @@ export function ExploreView({ book, db }: { book: OpeningBook; db: Db | undefine
           <>
             <PositionTitle state={state} fallback={cursor.ply === 0 ? "Starting position" : "Unnamed position"} />
 
-            {lastMove && beforeLast && (
-              <CommentBox db={db} epd={beforeLast} uci={lastMove} san={state.sans.at(-1)!} />
-            )}
+            {lastMove && beforeLast && <CommentBox db={db} epd={beforeLast} uci={lastMove} san={state.sans.at(-1)!} />}
 
             <section>
               <h2>Moves</h2>

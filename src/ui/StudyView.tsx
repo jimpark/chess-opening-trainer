@@ -47,13 +47,34 @@ export function StudyView({ book, db, selection, onSelect, onImported }: Props) 
       />
     );
   }
-  return <Study key={`${selection.family}-${selection.color}`} book={book} db={db} selection={selection} onChange={() => onSelect(undefined)} />;
+  return (
+    <Study
+      key={`${selection.family}-${selection.color}`}
+      book={book}
+      db={db}
+      selection={selection}
+      onChange={() => onSelect(undefined)}
+    />
+  );
 }
 
-function Study({ book, db, selection, onChange }: { book: OpeningBook; db: Db | undefined; selection: Selection; onChange: () => void }) {
+function Study({
+  book,
+  db,
+  selection,
+  onChange,
+}: {
+  book: OpeningBook;
+  db: Db | undefined;
+  selection: Selection;
+  onChange: () => void;
+}) {
   const [mode, setMode] = useState<Mode>("learn");
   const rep = useRepertoire(book, db, selection.family, selection.color);
-  const counts = useMemo(() => countCards(rep.tree, rep.color, rep.cards, new Date()), [rep.tree, rep.color, rep.cards]);
+  const counts = useMemo(
+    () => countCards(rep.tree, rep.color, rep.cards, new Date()),
+    [rep.tree, rep.color, rep.cards],
+  );
 
   return (
     <div className="study">
@@ -61,14 +82,20 @@ function Study({ book, db, selection, onChange }: { book: OpeningBook; db: Db | 
         <strong>{rep.tree.family}</strong>
         <span className="muted">as {selection.color === "white" ? "White" : "Black"}</span>
         <div className="segmented">
-          <button className={mode === "learn" ? "on" : ""} onClick={() => setMode("learn")}>Learn</button>
-          <button className={mode === "quiz" ? "on" : ""} onClick={() => setMode("quiz")}>Quiz</button>
+          <button className={mode === "learn" ? "on" : ""} onClick={() => setMode("learn")}>
+            Learn
+          </button>
+          <button className={mode === "quiz" ? "on" : ""} onClick={() => setMode("quiz")}>
+            Quiz
+          </button>
         </div>
         <span className="muted" title="Positions where you must find a move">
           {counts.positions - counts.fresh} of {counts.positions} positions learned
           {counts.due > 0 && ` · ${counts.due} due`}
         </span>
-        <button className="link" onClick={onChange}>Change opening</button>
+        <button className="link" onClick={onChange}>
+          Change opening
+        </button>
       </div>
       {!rep.loaded ? (
         <p className="loading">Loading…</p>
@@ -119,8 +146,12 @@ function OpeningPicker(props: {
           </button>
         )}
         <div className="segmented">
-          <button className={color === "white" ? "on" : ""} onClick={() => onColor("white")}>Play as White</button>
-          <button className={color === "black" ? "on" : ""} onClick={() => onColor("black")}>Play as Black</button>
+          <button className={color === "white" ? "on" : ""} onClick={() => onColor("white")}>
+            Play as White
+          </button>
+          <button className={color === "black" ? "on" : ""} onClick={() => onColor("black")}>
+            Play as Black
+          </button>
         </div>
       </div>
       <input
@@ -142,7 +173,9 @@ function OpeningPicker(props: {
                 {s && s.due > 0 && <span className="badge due">{s.due} due</span>}
                 {s && s.due === 0 && s.cards > 0 && <span className="badge">studying</span>}
                 {f.imported && <span className="badge">imported</span>}
-                <span className="muted count">{f.lineCount} {f.lineCount === 1 ? "line" : "lines"}</span>
+                <span className="muted count">
+                  {f.lineCount} {f.lineCount === 1 ? "line" : "lines"}
+                </span>
               </button>
               {f.imported && db && (
                 <button

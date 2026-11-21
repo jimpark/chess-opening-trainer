@@ -4,7 +4,7 @@ import b from "../../data/lichess/b.tsv?raw";
 import c from "../../data/lichess/c.tsv?raw";
 import d from "../../data/lichess/d.tsv?raw";
 import e from "../../data/lichess/e.tsv?raw";
-import { buildBookFromTsv, epdOf, INITIAL_EPD, OpeningBook, replay } from "./book";
+import { buildBookFromTsv, epdOf, INITIAL_EPD, normalizeUci, OpeningBook, replay } from "./book";
 
 describe("OpeningBook", () => {
   it("merges transposed move orders into one position", () => {
@@ -22,7 +22,18 @@ describe("OpeningBook", () => {
 
   it("labels a position by the shortest line through it", () => {
     const book = new OpeningBook();
-    book.addLine("B90", "Sicilian Defense: Najdorf Variation", ["e4", "c5", "Nf3", "d6", "d4", "cxd4", "Nxd4", "Nf6", "Nc3", "a6"]);
+    book.addLine("B90", "Sicilian Defense: Najdorf Variation", [
+      "e4",
+      "c5",
+      "Nf3",
+      "d6",
+      "d4",
+      "cxd4",
+      "Nxd4",
+      "Nf6",
+      "Nc3",
+      "a6",
+    ]);
     book.addLine("B20", "Sicilian Defense", ["e4", "c5"]);
     const afterNf3 = epdOf(replay(["e2e4", "c7c5", "g1f3"])!);
     expect(book.labelFor(afterNf3)).toBe("Sicilian Defense: Najdorf Variation");
@@ -43,5 +54,17 @@ describe("Lichess dataset", () => {
     console.log(`${book.lines.length} lines, ${book.positions.size} positions, ${ms.toFixed(0)} ms`);
     expect(book.lines.length).toBeGreaterThan(3000);
     expect(book.get(INITIAL_EPD)!.moves.length).toBe(20);
+  });
+});
+
+describe("normalizeUci", () => {
+  it("converts a board castling move to the book's king-takes-rook form", () => {
+    const pos = replay(["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "f8c5"])!;
+    const book = new OpeningBook();
+    const line = book.addLine("C50", "Castles", ["e4", "e5", "Nf3", "Nc6", "Bc4", "Bc5", "O-O"]);
+    expect(line.ucis.at(-1)).toBe("e1h1");
+    expect(normalizeUci(pos, "e1g1")).toBe("e1h1");
+    expect(normalizeUci(pos, "e1h1")).toBe("e1h1");
+    expect(normalizeUci(pos, "d2d3")).toBe("d2d3");
   });
 });

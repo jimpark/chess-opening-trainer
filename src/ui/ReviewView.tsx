@@ -93,7 +93,9 @@ function ReviewSession(props: { book: OpeningBook; db: Db; selection: Selection;
       <div className="study-bar">
         <strong>Review: {selection.family}</strong>
         <span className="muted">as {selection.color === "white" ? "White" : "Black"}</span>
-        <button className="link" onClick={onFinish}>End review</button>
+        <button className="link" onClick={onFinish}>
+          End review
+        </button>
       </div>
       {!plan ? (
         <p className="loading">Loading…</p>
@@ -101,7 +103,10 @@ function ReviewSession(props: { book: OpeningBook; db: Db; selection: Selection;
         <QuizView book={book} rep={rep} review={review} />
       ) : (
         <p className="loading">
-          Nothing is due in this opening. <button className="link" onClick={onFinish}>Back</button>
+          Nothing is due in this opening.{" "}
+          <button className="link" onClick={onFinish}>
+            Back
+          </button>
         </p>
       )}
     </div>

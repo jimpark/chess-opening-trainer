@@ -41,7 +41,9 @@ export function CommentBox({ db, epd, uci, san }: { db: Db | undefined; epd: str
           }}
         />
         <div className="controls">
-          <button className="primary" onClick={() => void save()}>Save</button>
+          <button className="primary" onClick={() => void save()}>
+            Save
+          </button>
           <button onClick={() => setDraft(undefined)}>Cancel</button>
         </div>
       </section>

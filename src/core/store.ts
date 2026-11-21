@@ -100,7 +100,10 @@ export async function repertoireFor(db: Db, family: string, color: Color, now = 
     "INSERT INTO repertoires (family, color, created_at) VALUES (?, ?, ?) ON CONFLICT (family, color) DO NOTHING",
     [family, color, now.toISOString()],
   );
-  const [row] = await db.select<Repertoire>("SELECT id, family, color FROM repertoires WHERE family = ? AND color = ?", [family, color]);
+  const [row] = await db.select<Repertoire>(
+    "SELECT id, family, color FROM repertoires WHERE family = ? AND color = ?",
+    [family, color],
+  );
   return row;
 }
 
@@ -198,7 +201,10 @@ export async function recordAnswer(
   moveUci: string | undefined,
   now = new Date(),
 ): Promise<StoredCard | undefined> {
-  const [row] = await db.select<CardRow>("SELECT * FROM cards WHERE repertoire_id = ? AND epd = ?", [repertoireId, epd]);
+  const [row] = await db.select<CardRow>("SELECT * FROM cards WHERE repertoire_id = ? AND epd = ?", [
+    repertoireId,
+    epd,
+  ]);
   const existing = row ? toCard(row) : undefined;
   if (!shouldRecord(existing, grade, now)) return existing;
 
@@ -229,7 +235,10 @@ export async function recordAnswer(
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [...values, repertoireId, epd],
     );
-    [{ id }] = await db.select<{ id: number }>("SELECT id FROM cards WHERE repertoire_id = ? AND epd = ?", [repertoireId, epd]);
+    [{ id }] = await db.select<{ id: number }>("SELECT id FROM cards WHERE repertoire_id = ? AND epd = ?", [
+      repertoireId,
+      epd,
+    ]);
   }
   await db.execute("INSERT INTO review_log (card_id, rating, state, reviewed_at, move_uci) VALUES (?, ?, ?, ?, ?)", [
     id,
@@ -245,14 +254,20 @@ export type ProgressKind = "seen" | "completed";
 
 /** Lines with progress of `kind`, as space-separated UCI moves of each line's last position. */
 export async function lineProgress(db: Db, repertoireId: number, kind: ProgressKind): Promise<Set<string>> {
-  const rows = await db.select<{ line: string }>("SELECT line FROM line_progress WHERE repertoire_id = ? AND kind = ?", [
-    repertoireId,
-    kind,
-  ]);
+  const rows = await db.select<{ line: string }>(
+    "SELECT line FROM line_progress WHERE repertoire_id = ? AND kind = ?",
+    [repertoireId, kind],
+  );
   return new Set(rows.map((r) => r.line));
 }
 
-export async function addLineProgress(db: Db, repertoireId: number, kind: ProgressKind, line: string, now = new Date()) {
+export async function addLineProgress(
+  db: Db,
+  repertoireId: number,
+  kind: ProgressKind,
+  line: string,
+  now = new Date(),
+) {
   await db.execute("INSERT OR IGNORE INTO line_progress (repertoire_id, kind, line, at) VALUES (?, ?, ?, ?)", [
     repertoireId,
     kind,
@@ -316,14 +331,16 @@ export async function commentFor(db: Db, epd: string, uci: string): Promise<Move
 }
 
 /** Adds imported comments. A move that already has a comment keeps it. */
-export async function addImportedComments(db: Db, comments: { epd: string; uci: string; text: string }[], now = new Date()) {
+export async function addImportedComments(
+  db: Db,
+  comments: { epd: string; uci: string; text: string }[],
+  now = new Date(),
+) {
   for (const c of comments) {
-    await db.execute("INSERT OR IGNORE INTO comments (epd, uci, text, source, updated_at) VALUES (?, ?, ?, 'import', ?)", [
-      c.epd,
-      c.uci,
-      c.text,
-      now.toISOString(),
-    ]);
+    await db.execute(
+      "INSERT OR IGNORE INTO comments (epd, uci, text, source, updated_at) VALUES (?, ?, ?, 'import', ?)",
+      [c.epd, c.uci, c.text, now.toISOString()],
+    );
   }
 }
 

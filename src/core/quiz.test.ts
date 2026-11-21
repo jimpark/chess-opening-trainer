@@ -111,9 +111,10 @@ describe("quiz as White", () => {
     let s = startQuiz(tree, "white");
     for (const uci of ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "f8c5"]) {
       const node = tree.nodes[s.nodeId];
-      s = turnOf(tree, s) === "user"
-        ? userMove(tree, book, s, uci)
-        : opponentMove(tree, s, node.children.find((c) => c.ucis.at(-1) === uci)!.id);
+      s =
+        turnOf(tree, s) === "user"
+          ? userMove(tree, book, s, uci)
+          : opponentMove(tree, s, node.children.find((c) => c.ucis.at(-1) === uci)!.id);
     }
     expect(s.feedback).toEqual({ kind: "complete", name: "Italian Game: Giuoco Piano" });
     expect(turnOf(tree, s)).toBe("complete");
@@ -126,9 +127,10 @@ describe("quiz as White", () => {
     let s = startQuiz(tree, "white");
     for (const uci of ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4"]) {
       const node = tree.nodes[s.nodeId];
-      s = turnOf(tree, s) === "user"
-        ? userMove(tree, book, s, uci)
-        : opponentMove(tree, s, node.children.find((c) => c.ucis.at(-1) === uci)!.id);
+      s =
+        turnOf(tree, s) === "user"
+          ? userMove(tree, book, s, uci)
+          : opponentMove(tree, s, node.children.find((c) => c.ucis.at(-1) === uci)!.id);
     }
     const giuoco = tree.nodes[s.nodeId].children.find((c) => c.san === "Bc5")!;
     s = { ...s, done: new Set([giuoco.id]) };
@@ -143,9 +145,10 @@ describe("quiz as White", () => {
     let s = startQuiz(t, "white");
     for (const uci of ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4"]) {
       const node = t.nodes[s.nodeId];
-      s = turnOf(t, s) === "user"
-        ? userMove(t, b, s, uci)
-        : opponentMove(t, s, node.children.find((c) => c.ucis.at(-1) === uci)!.id);
+      s =
+        turnOf(t, s) === "user"
+          ? userMove(t, b, s, uci)
+          : opponentMove(t, s, node.children.find((c) => c.ucis.at(-1) === uci)!.id);
     }
     // Nf6 has 2 lines, Bc5 has 1: Nf6 covers [0, 2/3).
     expect(autoOpponentChild(t, s, () => 0.6).san).toBe("Nf6");

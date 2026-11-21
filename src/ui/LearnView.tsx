@@ -72,11 +72,24 @@ export function LearnView({ book, rep, db, onQuiz }: Props) {
   return (
     <div className="explore">
       <div className="board-column">
-        <Board pos={pos} fen={node.fen} orientation={color} lastMove={node.ucis.at(-1)} shapes={shapes} onMove={onMove} />
+        <Board
+          pos={pos}
+          fen={node.fen}
+          orientation={color}
+          lastMove={node.ucis.at(-1)}
+          shapes={shapes}
+          onMove={onMove}
+        />
         <div className="controls">
-          <button onClick={() => setNodeId(tree.root.id)} disabled={!node.parent} title="Start">⏮</button>
-          <button onClick={back} disabled={!node.parent} title="Back (←)">◀ Back</button>
-          <button onClick={forward} disabled={!next} title="Next move (→)">Next ▶</button>
+          <button onClick={() => setNodeId(tree.root.id)} disabled={!node.parent} title="Start">
+            ⏮
+          </button>
+          <button onClick={back} disabled={!node.parent} title="Back (←)">
+            ◀ Back
+          </button>
+          <button onClick={forward} disabled={!next} title="Next move (→)">
+            Next ▶
+          </button>
         </div>
       </div>
 
@@ -128,11 +141,17 @@ export function LearnView({ book, rep, db, onQuiz }: Props) {
             {allSeen ? (
               <>
                 <p>You have seen all {tree.leaves.length} lines.</p>
-                <button className="primary" onClick={onQuiz}>Start the quiz</button>
-                <button className="link" onClick={() => rep.clearLines("seen")}>Mark all lines unseen</button>
+                <button className="primary" onClick={onQuiz}>
+                  Start the quiz
+                </button>
+                <button className="link" onClick={() => rep.clearLines("seen")}>
+                  Mark all lines unseen
+                </button>
               </>
             ) : (
-              <button className="primary" onClick={nextLine}>Next unseen line</button>
+              <button className="primary" onClick={nextLine}>
+                Next unseen line
+              </button>
             )}
           </section>
         )}

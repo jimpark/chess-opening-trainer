@@ -28,9 +28,7 @@ describe("explore", () => {
 
   it("lists other move orders that reach the position", () => {
     const s = explore(sampleBook(), ["d2d4", "d7d5", "c2c4", "e7e6"])!;
-    expect(s.transpositions).toEqual([
-      { sans: ["c4", "e6", "d4", "d5"], name: "English Opening: Agincourt Defense" },
-    ]);
+    expect(s.transpositions).toEqual([{ sans: ["c4", "e6", "d4", "d5"], name: "English Opening: Agincourt Defense" }]);
   });
 
   it("names another move order by where it stood before joining, not by a longer line", () => {
@@ -89,8 +87,18 @@ describe("findPosition", () => {
   it("finds a book position by FEN through its shortest line", () => {
     const book = sampleBook();
     const hit = findPosition(book, "rnbqkbnr/ppp2ppp/4p3/3p4/2PP4/8/PP2PPPP/RNBQKBNR w KQkq - 0 3");
-    expect(hit).toEqual({ kind: "fen", ucis: ["d2d4", "d7d5", "c2c4", "e7e6"], sans: ["d4", "d5", "c4", "e6"], inBook: true });
-    expect(findPosition(book, "4k3/8/8/8/8/8/8/4K3 w - - 0 1")).toEqual({ kind: "fen", ucis: undefined, sans: [], inBook: false });
+    expect(hit).toEqual({
+      kind: "fen",
+      ucis: ["d2d4", "d7d5", "c2c4", "e7e6"],
+      sans: ["d4", "d5", "c4", "e6"],
+      inBook: true,
+    });
+    expect(findPosition(book, "4k3/8/8/8/8/8/8/4K3 w - - 0 1")).toEqual({
+      kind: "fen",
+      ucis: undefined,
+      sans: [],
+      inBook: false,
+    });
   });
 
   it("lists lines that start with given moves", () => {

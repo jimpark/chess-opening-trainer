@@ -34,7 +34,7 @@ function viteDb(hot: NonNullable<ImportMeta["hot"]>): Db {
     });
   return {
     execute: (sql, params) => call("execute", sql, params) as Promise<{ lastInsertId?: number }>,
-    select: <T,>(sql: string, params?: unknown[]) => call("select", sql, params) as Promise<T[]>,
+    select: <T>(sql: string, params?: unknown[]) => call("select", sql, params) as Promise<T[]>,
   };
 }
 

@@ -142,7 +142,10 @@ export function QuizView({ book, rep, review }: Props) {
             </>
           )}
           {s.results.length > 0 && (
-            <span className="muted"> First try: {goodCount} / {s.results.length} moves</span>
+            <span className="muted">
+              {" "}
+              First try: {goodCount} / {s.results.length} moves
+            </span>
           )}
         </p>
 
@@ -156,7 +159,9 @@ export function QuizView({ book, rep, review }: Props) {
         {preview && (
           <div className="preview-banner">
             <span>Showing the engine line on the board.</span>
-            <button className="primary" onClick={() => setPreview(undefined)}>Back to quiz</button>
+            <button className="primary" onClick={() => setPreview(undefined)}>
+              Back to quiz
+            </button>
           </div>
         )}
 
@@ -183,10 +188,15 @@ export function QuizView({ book, rep, review }: Props) {
                 <ul className="bookmoves">
                   {node.children.map((c) => (
                     <li key={c.id}>
-                      <button className={c === expected ? "next" : ""} onClick={() => setS((cur) => selectVariation(cur, c.id))}>
+                      <button
+                        className={c === expected ? "next" : ""}
+                        onClick={() => setS((cur) => selectVariation(cur, c.id))}
+                      >
                         <span className="san muted">?</span>
                         <span className="label">{book.labelFor(c.epd)}</span>
-                        <span className="muted count">{subtreeDone(c, s.done) ? "✓" : `${doneLeafCount(c, s.done)}/${c.leafCount}`}</span>
+                        <span className="muted count">
+                          {subtreeDone(c, s.done) ? "✓" : `${doneLeafCount(c, s.done)}/${c.leafCount}`}
+                        </span>
                       </button>
                     </li>
                   ))}
@@ -205,7 +215,9 @@ export function QuizView({ book, rep, review }: Props) {
                   <button onClick={() => setS((cur) => opponentMove(tree, cur, c.id))}>
                     <span className="san">{c.san}</span>
                     <span className="label">{book.labelFor(c.epd)}</span>
-                    <span className="muted count">{subtreeDone(c, s.done) ? "✓" : `${doneLeafCount(c, s.done)}/${c.leafCount}`}</span>
+                    <span className="muted count">
+                      {subtreeDone(c, s.done) ? "✓" : `${doneLeafCount(c, s.done)}/${c.leafCount}`}
+                    </span>
                   </button>
                 </li>
               ))}
@@ -230,7 +242,9 @@ export function QuizView({ book, rep, review }: Props) {
                 <p>
                   Review complete. First try on {goodCount} of {s.results.length} moves.
                 </p>
-                <button className="primary" onClick={review.onFinish}>Done</button>
+                <button className="primary" onClick={review.onFinish}>
+                  Done
+                </button>
               </>
             )}
           </section>
@@ -252,7 +266,9 @@ export function QuizView({ book, rep, review }: Props) {
                 </button>
               </>
             ) : (
-              <button className="primary" onClick={() => setS((cur) => restart(tree, cur))}>Next line</button>
+              <button className="primary" onClick={() => setS((cur) => restart(tree, cur))}>
+                Next line
+              </button>
             )}
           </section>
         )}

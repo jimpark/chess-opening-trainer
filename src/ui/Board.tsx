@@ -7,6 +7,7 @@ import type { Key } from "chessground/types";
 import type { Position } from "chessops/chess";
 import { chessgroundDests } from "chessops/compat";
 import { parseSquare } from "chessops/util";
+import { normalizeUci } from "../core/book";
 import "chessground/assets/chessground.base.css";
 import "chessground/assets/chessground.brown.css";
 import "chessground/assets/chessground.cburnett.css";
@@ -20,8 +21,8 @@ export interface BoardProps {
   /** False disables moving pieces. Defaults to true. */
   interactive?: boolean;
   /**
-   * Called with a UCI move. If the parent does not change any board prop in response, the board
-   * takes the move back. Pawn moves to the last rank promote to a queen. */
+   * Called with a UCI move, castling written as the king taking its rook (e1h1) like the book.
+   * If the parent does not change any board prop in response, the board takes the move back. Pawn moves to the last rank promote to a queen. */
   onMove: (uci: string) => void;
 }
 
@@ -64,7 +65,7 @@ export function Board({ pos, fen, orientation, lastMove, shapes, interactive = t
             const rank = dest[1];
             const promotes = piece?.role === "pawn" && (rank === "8" || rank === "1");
             const before = applied.current;
-            onMoveRef.current(`${orig}${dest}${promotes ? "q" : ""}`);
+            onMoveRef.current(normalizeUci(pos, `${orig}${dest}${promotes ? "q" : ""}`));
             setTimeout(() => {
               if (applied.current === before) api.current?.set(config.current);
             }, 50);
@@ -81,4 +82,3 @@ export function Board({ pos, fen, orientation, lastMove, shapes, interactive = t
 
   return <div className="board" ref={el} />;
 }
-

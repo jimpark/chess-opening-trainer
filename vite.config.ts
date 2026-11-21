@@ -56,14 +56,17 @@ function devBridge(): Plugin {
     configureServer(server) {
       mkdirSync(".dev-data", { recursive: true });
       const db = nodeDb(".dev-data/trainer.db");
-      server.ws.on("db:req", async (d: { id: number; op: "execute" | "select"; sql: string; params: unknown[] }, client) => {
-        try {
-          const result = d.op === "execute" ? await db.execute(d.sql, d.params) : await db.select(d.sql, d.params);
-          client.send("db:res", { id: d.id, result });
-        } catch (e) {
-          client.send("db:res", { id: d.id, error: (e as Error).message });
-        }
-      });
+      server.ws.on(
+        "db:req",
+        async (d: { id: number; op: "execute" | "select"; sql: string; params: unknown[] }, client) => {
+          try {
+            const result = d.op === "execute" ? await db.execute(d.sql, d.params) : await db.select(d.sql, d.params);
+            client.send("db:res", { id: d.id, result });
+          } catch (e) {
+            client.send("db:res", { id: d.id, error: (e as Error).message });
+          }
+        },
+      );
 
       let proc: ChildProcess | undefined;
       server.ws.on("engine:send", (data: { line: string }) => {

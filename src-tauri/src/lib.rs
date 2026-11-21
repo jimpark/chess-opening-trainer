@@ -1,8 +1,8 @@
 use std::sync::Mutex;
 
 use tauri::{AppHandle, Emitter, Manager, RunEvent, State};
-use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
+use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 
 /// The Stockfish process, started on the first command sent to it.
 #[derive(Default)]
@@ -63,12 +63,11 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app, event| {
-            if let RunEvent::Exit = event {
-                if let Ok(mut child) = app.state::<Engine>().0.lock() {
-                    if let Some(child) = child.take() {
-                        let _ = child.kill();
-                    }
-                }
+            if let RunEvent::Exit = event
+                && let Ok(mut child) = app.state::<Engine>().0.lock()
+                && let Some(child) = child.take()
+            {
+                let _ = child.kill();
             }
         });
 }

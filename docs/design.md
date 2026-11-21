@@ -14,18 +14,18 @@ target them.
 
 ## Decisions
 
-| Area | Choice |
-| --- | --- |
-| Shell | Tauri 2 (Rust backend, system webview) |
-| UI | TypeScript, React, Vite |
-| Board | `chessground` (Lichess board, GPL-3.0) |
-| Chess rules and PGN | `chessops` (Lichess, GPL-3.0): move generation, SAN, FEN, PGN with variations and comments |
-| Opening data | Lichess `chess-openings` dataset (CC0), plus PGN import |
-| Storage | Opening book: in memory, built from bundled TSVs at startup. User data: SQLite through `tauri-plugin-sql`. Offline only. |
-| Spaced repetition | FSRS through `ts-fsrs` 6 (MIT) |
-| Engine | Stockfish 19, bundled as a Tauri sidecar, UCI over stdin/stdout |
-| Project license | GPL-3.0 (changed from MIT; see Licensing) |
-| Tests | Vitest for TypeScript core logic, `cargo test` for the Rust side |
+| Area                | Choice                                                                                                                   |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Shell               | Tauri 2 (Rust backend, system webview)                                                                                   |
+| UI                  | TypeScript, React, Vite                                                                                                  |
+| Board               | `chessground` (Lichess board, GPL-3.0)                                                                                   |
+| Chess rules and PGN | `chessops` (Lichess, GPL-3.0): move generation, SAN, FEN, PGN with variations and comments                               |
+| Opening data        | Lichess `chess-openings` dataset (CC0), plus PGN import                                                                  |
+| Storage             | Opening book: in memory, built from bundled TSVs at startup. User data: SQLite through `tauri-plugin-sql`. Offline only. |
+| Spaced repetition   | FSRS through `ts-fsrs` 6 (MIT)                                                                                           |
+| Engine              | Stockfish 19, bundled as a Tauri sidecar, UCI over stdin/stdout                                                          |
+| Project license     | GPL-3.0 (changed from MIT; see Licensing)                                                                                |
+| Tests               | Vitest for TypeScript core logic, `cargo test` for the Rust side                                                         |
 
 ## Licensing
 
@@ -210,8 +210,8 @@ seen-out-of-total count, and the user clicks one to follow it instead. Moves pla
 also follow a branch when they match one. Clicking a move in the move list returns to it.
 
 At the end of a line, "Next unseen line" jumps back to the nearest branch point with unseen
-lines. When every line has been seen, the panel offers to start the quiz. Comments are not shown
-yet (milestone 5).
+lines. When every line has been seen, the panel offers to start the quiz. The comment on the last
+move shows below the move list.
 
 ### Quiz
 
@@ -229,12 +229,12 @@ The board resets to the start. The app plays the opponent's moves and the user p
 
 Move outcomes:
 
-| User's move | Result |
-| --- | --- |
-| A book move of this opening at this position | Correct. Quiz continues. |
-| A move that reaches a position elsewhere in this opening's tree (a transposition) | Correct. The app names the line and continues from there. |
-| A book move outside this opening | Not a mistake. "That is a book move (name), but it leaves the opening. Try again." A yellow arrow marks the move, and the board takes it back. |
-| Not a book move | "Wrong. Try again." A red arrow marks the move, and the board takes it back. |
+| User's move                                                                       | Result                                                                                                                                         |
+| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| A book move of this opening at this position                                      | Correct. Quiz continues.                                                                                                                       |
+| A move that reaches a position elsewhere in this opening's tree (a transposition) | Correct. The app names the line and continues from there.                                                                                      |
+| A book move outside this opening                                                  | Not a mistake. "That is a book move (name), but it leaves the opening. Try again." A yellow arrow marks the move, and the board takes it back. |
+| Not a book move                                                                   | "Wrong. Try again." A red arrow marks the move, and the board takes it back.                                                                   |
 
 Hint button, per user turn:
 
@@ -280,11 +280,11 @@ At the end the panel shows first-try moves out of total.
 
 A card is a position where the user is to move, in a given repertoire. Grading:
 
-| Outcome | FSRS rating |
-| --- | --- |
-| Correct on first try, no hint | Good |
-| Correct after one hint | Hard |
-| Wrong at least once, or used the full hint | Again |
+| Outcome                                    | FSRS rating |
+| ------------------------------------------ | ----------- |
+| Correct on first try, no hint              | Good        |
+| Correct after one hint                     | Hard        |
+| Wrong at least once, or used the full hint | Again       |
 
 "Easy" is not used. Scheduling uses `ts-fsrs` 6 with default parameters and interval fuzz, so a
 new position comes back after 1 to 10 minutes in learning steps, then after days.
@@ -319,6 +319,9 @@ it for web.
   search stops the running one. `src/platform/engine.ts` picks the transport: Tauri events in
   the app, or a Vite dev server bridge (`devEngine` in `vite.config.ts`) when the UI runs in a
   browser during development.
+- **Castling.** The engine runs with `UCI_Chess960` on, so it reads and writes castling as the
+  king taking its rook (`e1h1`), the form chessops and the book use. The board converts a king
+  drop on g1 to the same form.
 - **Depths.** 16 for quiz feedback, which takes under a second; 24 in Explore.
 - **Cache.** A fixed-depth search that reaches its depth is saved in `engine_cache`, so a repeated
   quiz mistake or an Explore position already analyzed to depth 24 shows its result at once.

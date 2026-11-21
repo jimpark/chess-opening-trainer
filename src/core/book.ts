@@ -1,4 +1,4 @@
-import { Chess, type Position } from "chessops/chess";
+import { Chess, normalizeMove, type Position } from "chessops/chess";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import { makeSan, parseSan } from "chessops/san";
 import { makeUci, parseUci } from "chessops/util";
@@ -182,4 +182,13 @@ export function replay(ucis: string[]): Position | undefined {
     pos.play(move);
   }
   return pos;
+}
+
+/**
+ * Converts a board move to the form the book uses. chessops writes castling as the king taking
+ * its rook (e1h1), while a board sends the king's destination (e1g1).
+ */
+export function normalizeUci(pos: Position, uci: string): string {
+  const move = parseUci(uci);
+  return move ? makeUci(normalizeMove(pos, move)) : uci;
 }

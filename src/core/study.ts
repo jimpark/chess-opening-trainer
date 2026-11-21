@@ -16,7 +16,8 @@ export function families(book: OpeningBook): Family[] {
   const byName = new Map<string, Family>();
   for (const line of book.lines) {
     const f = byName.get(line.family);
-    if (!f) byName.set(line.family, { name: line.family, lineCount: 1, eco: line.eco, imported: line.source === "import" });
+    if (!f)
+      byName.set(line.family, { name: line.family, lineCount: 1, eco: line.eco, imported: line.source === "import" });
     else {
       f.lineCount++;
       if (line.eco && (!f.eco || line.eco < f.eco)) f.eco = line.eco;

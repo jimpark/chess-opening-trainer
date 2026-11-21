@@ -16,7 +16,11 @@ export interface AnalysisState {
  * `key` identifies the options, so callers need not memoize them. A search with a depth limit
  * that reaches its depth is cached in the database and reused.
  */
-export function useAnalysis(fen: string | undefined, options: Omit<AnalyzeOptions, "onUpdate">, key: string): AnalysisState {
+export function useAnalysis(
+  fen: string | undefined,
+  options: Omit<AnalyzeOptions, "onUpdate">,
+  key: string,
+): AnalysisState {
   const eng = engine();
   const [analysis, setAnalysis] = useState<Analysis | undefined>();
   const [running, setRunning] = useState(false);
@@ -40,7 +44,9 @@ export function useAnalysis(fen: string | undefined, options: Omit<AnalyzeOption
       }
       search = eng.analyze(fen, { ...options, onUpdate: (a) => live && setAnalysis(a) });
       const a = await search.result;
-      if (db && cacheKey && depth && a.depth >= depth && a.lines.length > 0) void cacheAnalysis(db, cacheKey, a);
+      // A stopped search is not live and may mix depths, so only a search that ran out is cached.
+      if (live && db && cacheKey && depth && a.depth >= depth && a.lines.length > 0)
+        void cacheAnalysis(db, cacheKey, a);
       if (!live) return;
       if (a.lines.length > 0) setAnalysis(a);
       setRunning(false);
@@ -102,7 +108,11 @@ export function lossInPawns(played: Score, best: Score, whiteToMove: boolean): n
 }
 
 /** MultiPV lines: score and moves. Clicking a move passes the UCI moves up to it. */
-export function EngineLines(props: { fen: string; analysis: Analysis | undefined; onSelect?: (ucis: string[]) => void }) {
+export function EngineLines(props: {
+  fen: string;
+  analysis: Analysis | undefined;
+  onSelect?: (ucis: string[]) => void;
+}) {
   const { fen, analysis, onSelect } = props;
   if (!analysis || analysis.lines.length === 0) return <p className="muted">Analyzing…</p>;
   if (analysis.fen !== fen) return <p className="muted">Analyzing…</p>;
