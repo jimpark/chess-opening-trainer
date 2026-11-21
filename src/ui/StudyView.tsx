@@ -174,6 +174,8 @@ function OpeningPicker(props: {
     const hits = all.filter((f) => words.every((w) => `${f.eco} ${f.name}`.toLowerCase().includes(w)));
     return sortFamilies(hits, sort);
   }, [all, query, sort]);
+  // Every row reserves the delete column while any import is listed, so the counts line up.
+  const hasImports = shown.some((f) => f.imported);
 
   return (
     <div className="picker">
@@ -233,19 +235,23 @@ function OpeningPicker(props: {
                   {f.lineCount} {f.lineCount === 1 ? "line" : "lines"}
                 </span>
               </button>
-              {f.imported && db && (
-                <button
-                  className={confirmDelete === f.name ? "delete confirm" : "delete"}
-                  title="Delete this import and its progress"
-                  onClick={() => {
-                    if (confirmDelete !== f.name) return setConfirmDelete(f.name);
-                    // The book has no way to drop lines, so reload to rebuild it without the import.
-                    void deleteImport(db, f.name).then(() => location.reload());
-                  }}
-                  onBlur={() => setConfirmDelete(undefined)}
-                >
-                  {confirmDelete === f.name ? "Delete?" : "✕"}
-                </button>
+              {hasImports && (
+                <span className="row-action">
+                  {f.imported && db && (
+                    <button
+                      className={confirmDelete === f.name ? "delete confirm" : "delete"}
+                      title="Delete this import and its progress"
+                      onClick={() => {
+                        if (confirmDelete !== f.name) return setConfirmDelete(f.name);
+                        // The book has no way to drop lines, so reload to rebuild it without the import.
+                        void deleteImport(db, f.name).then(() => location.reload());
+                      }}
+                      onBlur={() => setConfirmDelete(undefined)}
+                    >
+                      {confirmDelete === f.name ? "Delete?" : "✕"}
+                    </button>
+                  )}
+                </span>
               )}
             </li>
           );

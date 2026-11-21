@@ -575,9 +575,16 @@ button.primary {
   flex: 1;
 }
 
-button.delete {
+.row-action {
+  flex: 0 0 72px;
+  display: flex;
+  justify-content: center;
+}
+
+.families button.delete {
+  width: auto;
   color: var(--muted);
-  padding: 2px 8px;
+  padding: 4px 8px;
 }
 
 button.delete:hover,
@@ -705,4 +712,9 @@ button.delete.confirm {
 .transposed-note {
   margin: 6px 0 0;
   font-size: 13px;
+}
+
+/* Fixed ECO column so names line up when an import has no ECO code. */
+.families .eco {
+  flex: 0 0 30px;
 }
