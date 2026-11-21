@@ -3,7 +3,8 @@ import type { Color } from "chessops/types";
 import type { OpeningBook } from "../core/book";
 import { countCards } from "../core/review";
 import { deleteImport, repertoireSummaries, type Db, type RepertoireSummary } from "../core/store";
-import { families } from "../core/study";
+import { familyGames, popularitySource } from "../bookData";
+import { families, sortFamilies, type FamilySort } from "../core/study";
 import { ImportDialog } from "./ImportDialog";
 import { LearnView } from "./LearnView";
 import { QuizView } from "./QuizView";
@@ -118,7 +119,16 @@ function OpeningPicker(props: {
 }) {
   const { book, db, color, onColor, onPick, onImport } = props;
   const [confirmDelete, setConfirmDelete] = useState<string | undefined>();
-  const all = useMemo(() => families(book), [book]);
+  const all = useMemo(() => families(book, familyGames), [book]);
+  const [sort, setSortState] = useState<FamilySort>(savedSort);
+  const setSort = (s: FamilySort) => {
+    setSortState(s);
+    try {
+      localStorage.setItem(SORT_KEY, s);
+    } catch {
+      // Storage can be unavailable; the choice then lasts for this session.
+    }
+  };
   const [query, setQuery] = useState("");
   const [summaries, setSummaries] = useState<RepertoireSummary[]>([]);
   useEffect(() => {
@@ -131,10 +141,8 @@ function OpeningPicker(props: {
   const shown = useMemo(() => {
     const words = query.toLowerCase().split(/\s+/).filter(Boolean);
     const hits = all.filter((f) => words.every((w) => `${f.eco} ${f.name}`.toLowerCase().includes(w)));
-    // Imports first, then openings already studied with this color.
-    const rank = (f: (typeof all)[number]) => (f.imported ? 0 : started.has(f.name) ? 1 : 2);
-    return [...hits].sort((a, b) => rank(a) - rank(b));
-  }, [all, query, started]);
+    return sortFamilies(hits, sort);
+  }, [all, query, sort]);
 
   return (
     <div className="picker">
@@ -162,6 +170,20 @@ function OpeningPicker(props: {
         onChange={(e) => setQuery(e.target.value)}
         autoFocus
       />
+      <div className="sort-bar">
+        <span className="muted">Sort by</span>
+        <div className="segmented">
+          {(["popularity", "name", "lines"] as const).map((s) => (
+            <button key={s} className={sort === s ? "on" : ""} onClick={() => setSort(s)}>
+              {s === "popularity" ? "Popularity" : s === "name" ? "Name" : "Lines"}
+            </button>
+          ))}
+        </div>
+        <span className="muted note">
+          Popularity: games reaching each opening's main position in the Lichess{" "}
+          {popularitySource === "masters" ? "masters" : "player"} database
+        </span>
+      </div>
       <ul className="families">
         {shown.map((f) => {
           const s = started.get(f.name);
@@ -173,7 +195,10 @@ function OpeningPicker(props: {
                 {s && s.due > 0 && <span className="badge due">{s.due} due</span>}
                 {s && s.due === 0 && s.cards > 0 && <span className="badge">studying</span>}
                 {f.imported && <span className="badge">imported</span>}
-                <span className="muted count">
+                <span className="muted count games" title="Games reaching the main position">
+                  {formatGames(f.games)}
+                </span>
+                <span className="muted count lines">
                   {f.lineCount} {f.lineCount === 1 ? "line" : "lines"}
                 </span>
               </button>
@@ -198,4 +223,25 @@ function OpeningPicker(props: {
       </ul>
     </div>
   );
+}
+
+const SORT_KEY = "picker-sort";
+
+function savedSort(): FamilySort {
+  try {
+    const s = localStorage.getItem(SORT_KEY);
+    if (s === "popularity" || s === "name" || s === "lines") return s;
+  } catch {
+    // Storage can be unavailable; use the default.
+  }
+  return "popularity";
+}
+
+/** "1.4M games", "627K games", "512 games", "no data". */
+function formatGames(n: number | undefined): string {
+  if (n === undefined) return "no data";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M games`;
+  if (n >= 10_000) return `${Math.round(n / 1000)}K games`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}K games`;
+  return `${n} ${n === 1 ? "game" : "games"}`;
 }

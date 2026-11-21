@@ -84,6 +84,15 @@ install-app: build-app
 install-app: build
     Start-Process -Wait (Get-ChildItem src-tauri/target/release/bundle/nsis/*.exe | Select-Object -First 1).FullName
 
+# Refetch opening popularity into data/popularity.json (set LICHESS_TOKEN for the player database)
+popularity:
+    node scripts/fetch-popularity.mjs
+
+# Regenerate the app icons in src-tauri/icons from assets/icon.svg
+icons:
+    npx tauri icon assets/icon.svg
+    node -e "for (const d of ['android', 'ios']) require('fs').rmSync('src-tauri/icons/' + d, { recursive: true, force: true })"
+
 # Delete the browser dev database in .dev-data/
 reset-dev-data:
     node -e "require('fs').rmSync('.dev-data', { recursive: true, force: true })"

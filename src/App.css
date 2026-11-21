@@ -652,3 +652,24 @@ button.delete.confirm {
 .comment .controls {
   margin-top: 4px;
 }
+
+.sort-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sort-bar .note {
+  font-size: 12px;
+}
+
+.families .count.games {
+  min-width: 90px;
+  text-align: right;
+}
+
+.families .count.lines {
+  min-width: 64px;
+  text-align: right;
+}

@@ -199,8 +199,19 @@ line such as "Sicilian Defense" (1.e4 c5) that other lines extend is covered by 
 Game has 187 lines and 114 leaves. Two branches that reach the same position by different move
 orders stay separate in the tree and are linked through an EPD index.
 
-The Study tab opens with an opening picker: all 149 families sorted by line count, a search box,
-and a White or Black toggle.
+The Study tab opens with an opening picker: all 149 families, a search box, and a White or Black
+toggle. The list sorts by popularity (the default), name, or line count; the choice is kept in
+browser storage. Each row shows the family's game count and line count.
+
+Popularity is the number of games that reached the family's main position: the end of the line
+named exactly after the family (1.e4 c5 for the Sicilian Defense), or the family's shortest line
+when no line has that name (13 families). `just popularity` (`scripts/fetch-popularity.mjs`)
+queries the Lichess opening explorer once per family and writes `data/popularity.json`, which is
+committed; the app makes no network calls. The counts come from the masters database, which needs
+no login. With `LICHESS_TOKEN` set to a personal Lichess API token, the script uses the Lichess
+player database instead, which counts online games at all levels. Chess.com has no public API for
+opening statistics. Broad families rank high because their main position is shallow: King's Pawn
+Game (1.e4) counts every 1.e4 game. Imported openings have no count and sort last.
 
 ### Learn
 

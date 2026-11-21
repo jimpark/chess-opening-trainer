@@ -1,0 +1,602 @@
+{
+  "source": "masters",
+  "fetchedAt": "2026-11-21",
+  "families": {
+    "Alekhine Defense": {
+      "games": 21867,
+      "moves": "e4 Nf6"
+    },
+    "Amar Opening": {
+      "games": 32,
+      "moves": "Nh3"
+    },
+    "Amazon Attack": {
+      "games": 0,
+      "moves": "d4 d5 Qd3"
+    },
+    "Amsterdam Attack": {
+      "games": 0,
+      "moves": "e3 e5 c4 d6 Nc3 Nc6 b3 Nf6"
+    },
+    "Anderssen's Opening": {
+      "games": 875,
+      "moves": "a3"
+    },
+    "Australian Defense": {
+      "games": 46,
+      "moves": "d4 Na6"
+    },
+    "Barnes Defense": {
+      "games": 5,
+      "moves": "e4 f6"
+    },
+    "Barnes Opening": {
+      "games": 12,
+      "moves": "f3"
+    },
+    "Basque Opening": {
+      "games": 15,
+      "moves": "d4 Nf6 b3"
+    },
+    "Benko Gambit": {
+      "games": 17139,
+      "moves": "d4 Nf6 c4 c5 d5 b5"
+    },
+    "Benko Gambit Accepted": {
+      "games": 13030,
+      "moves": "d4 Nf6 c4 c5 d5 b5 cxb5 a6"
+    },
+    "Benko Gambit Declined": {
+      "games": 98,
+      "moves": "d4 Nf6 c4 c5 d5 b5 Bg5"
+    },
+    "Benoni Defense": {
+      "games": 38723,
+      "moves": "d4 Nf6 c4 c5"
+    },
+    "Bird Opening": {
+      "games": 6904,
+      "moves": "f4"
+    },
+    "Bishop's Opening": {
+      "games": 9627,
+      "moves": "e4 e5 Bc4"
+    },
+    "Blackmar-Diemer Gambit": {
+      "games": 314,
+      "moves": "d4 d5 e4"
+    },
+    "Blackmar-Diemer Gambit Accepted": {
+      "games": 248,
+      "moves": "d4 d5 e4 dxe4 Nc3 Nf6 f3 exf3"
+    },
+    "Blackmar-Diemer Gambit Declined": {
+      "games": 5,
+      "moves": "d4 d5 e4 dxe4 Nc3 Nf6 f3 c5"
+    },
+    "Blumenfeld Countergambit": {
+      "games": 2300,
+      "moves": "d4 Nf6 c4 e6 Nf3 c5 d5 b5"
+    },
+    "Blumenfeld Countergambit Accepted": {
+      "games": 612,
+      "moves": "d4 Nf6 c4 e6 Nf3 c5 d5 b5 dxe6 fxe6 cxb5 d5"
+    },
+    "Bogo-Indian Defense": {
+      "games": 23881,
+      "moves": "d4 Nf6 c4 e6 Nf3 Bb4+"
+    },
+    "Bongcloud Attack": {
+      "games": 0,
+      "moves": "e4 e5 Ke2"
+    },
+    "Borg Defense": {
+      "games": 42,
+      "moves": "e4 g5"
+    },
+    "Canard Opening": {
+      "games": 31,
+      "moves": "d4 Nf6 f4"
+    },
+    "Caro-Kann Defense": {
+      "games": 111624,
+      "moves": "e4 c6"
+    },
+    "Carr Defense": {
+      "games": 23,
+      "moves": "e4 h6"
+    },
+    "Catalan Opening": {
+      "games": 32437,
+      "moves": "d4 Nf6 c4 e6 g3"
+    },
+    "Center Game": {
+      "games": 1965,
+      "moves": "e4 e5 d4"
+    },
+    "Center Game Accepted": {
+      "games": 1870,
+      "moves": "e4 e5 d4 exd4"
+    },
+    "Clemenz Opening": {
+      "games": 135,
+      "moves": "h3"
+    },
+    "Colle System": {
+      "games": 37,
+      "moves": "Nf3 c5 e3 g6 d4 Bg7 dxc5 Qa5+"
+    },
+    "Creepy Crawly Formation": {
+      "games": 27,
+      "moves": "h3 d5 a3 e5"
+    },
+    "Czech Defense": {
+      "games": 4005,
+      "moves": "e4 d6 d4 Nf6 Nc3 c6"
+    },
+    "Danish Gambit": {
+      "games": 209,
+      "moves": "e4 e5 d4 exd4 c3"
+    },
+    "Danish Gambit Accepted": {
+      "games": 58,
+      "moves": "e4 e5 d4 exd4 c3 dxc3"
+    },
+    "Danish Gambit Declined": {
+      "games": 103,
+      "moves": "e4 e5 d4 exd4 c3 d5"
+    },
+    "Döry Defense": {
+      "games": 14,
+      "moves": "d4 Nf6 Nf3 Ne4"
+    },
+    "Dresden Opening": {
+      "games": 0,
+      "moves": "e4 e5 Nf3 Nc6 c4 Nf6 Nxe5"
+    },
+    "Duras Gambit": {
+      "games": 4,
+      "moves": "e4 f5"
+    },
+    "Dutch Defense": {
+      "games": 29020,
+      "moves": "d4 f5"
+    },
+    "East Indian Defense": {
+      "games": 56418,
+      "moves": "d4 Nf6 Nf3 g6"
+    },
+    "Elephant Gambit": {
+      "games": 289,
+      "moves": "e4 e5 Nf3 d5"
+    },
+    "English Defense": {
+      "games": 1021,
+      "moves": "d4 b6"
+    },
+    "English Opening": {
+      "games": 206316,
+      "moves": "c4"
+    },
+    "English Orangutan": {
+      "games": 11,
+      "moves": "c4 Nf6 b4"
+    },
+    "Englund Gambit": {
+      "games": 121,
+      "moves": "d4 e5"
+    },
+    "Englund Gambit Declined": {
+      "games": 2,
+      "moves": "d4 e5 d5"
+    },
+    "Formation": {
+      "games": 0,
+      "moves": "a3 e5 b3 d5 c3 Nf6 d3 Nc6 e3 Bd6 f3 O-O g3"
+    },
+    "Four Knights Game": {
+      "games": 18255,
+      "moves": "e4 e5 Nf3 Nc6 Nc3 Nf6"
+    },
+    "French Defense": {
+      "games": 158336,
+      "moves": "e4 e6"
+    },
+    "Fried Fox Defense": {
+      "games": 0,
+      "moves": "e4 f6 d4 Kf7"
+    },
+    "Global Opening": {
+      "games": 17,
+      "moves": "h3 e5 a3"
+    },
+    "Goldsmith Defense": {
+      "games": 8,
+      "moves": "e4 h5"
+    },
+    "Grob Opening": {
+      "games": 190,
+      "moves": "g4"
+    },
+    "Grünfeld Defense": {
+      "games": 44390,
+      "moves": "d4 Nf6 c4 g6 Nc3 d5"
+    },
+    "Gunderam Defense": {
+      "games": 304,
+      "moves": "e4 e5 Nf3 Qe7"
+    },
+    "Hippopotamus Defense": {
+      "games": 8,
+      "moves": "e4 Nh6"
+    },
+    "Horwitz Defense": {
+      "games": 42784,
+      "moves": "d4 e6"
+    },
+    "Hungarian Opening": {
+      "games": 20769,
+      "moves": "g3"
+    },
+    "Indian Defense": {
+      "games": 649930,
+      "moves": "d4 Nf6"
+    },
+    "Irish Gambit": {
+      "games": 1,
+      "moves": "e4 e5 Nf3 Nc6 Nxe5"
+    },
+    "Italian Game": {
+      "games": 51257,
+      "moves": "e4 e5 Nf3 Nc6 Bc4"
+    },
+    "Kádas Opening": {
+      "games": 55,
+      "moves": "h4"
+    },
+    "Kangaroo Defense": {
+      "games": 3759,
+      "moves": "d4 e6 c4 Bb4+"
+    },
+    "King's Gambit": {
+      "games": 5060,
+      "moves": "e4 e5 f4"
+    },
+    "King's Gambit Accepted": {
+      "games": 3393,
+      "moves": "e4 e5 f4 exf4"
+    },
+    "King's Gambit Declined": {
+      "games": 524,
+      "moves": "e4 e5 f4 Bc5"
+    },
+    "King's Indian Attack": {
+      "games": 38946,
+      "moves": "Nf3 d5 g3"
+    },
+    "King's Indian Attack, with Bf5": {
+      "games": 3126,
+      "moves": "Nf3 Nf6 g3 d5 Bg2 c6 O-O Bf5"
+    },
+    "King's Indian Attack, with e6": {
+      "games": 8500,
+      "moves": "Nf3 Nf6 g3 d5 Bg2 e6"
+    },
+    "King's Indian Defense": {
+      "games": 126435,
+      "moves": "d4 Nf6 c4 g6 Nc3"
+    },
+    "King's Knight Opening": {
+      "games": 307183,
+      "moves": "e4 e5 Nf3"
+    },
+    "King's Pawn Game": {
+      "games": 1368125,
+      "moves": "e4"
+    },
+    "King's Pawn Opening": {
+      "games": 4,
+      "moves": "e4 e5 b3"
+    },
+    "Lasker Simul Special": {
+      "games": 28,
+      "moves": "g3 h5"
+    },
+    "Latvian Gambit": {
+      "games": 380,
+      "moves": "e4 e5 Nf3 f5"
+    },
+    "Latvian Gambit Accepted": {
+      "games": 30,
+      "moves": "e4 e5 Nf3 f5 exf5"
+    },
+    "Lemming Defense": {
+      "games": 17,
+      "moves": "e4 Na6"
+    },
+    "Lion Defense": {
+      "games": 2797,
+      "moves": "e4 d6 d4 Nf6 Nc3 Nbd7"
+    },
+    "London System": {
+      "games": 5377,
+      "moves": "d4 Nf6 Nf3 g6 Bf4"
+    },
+    "London System, with Bd3": {
+      "games": 14,
+      "moves": "d4 Nf6 Nf3 g6 Bf4 Bg7 e3 d6 Bd3"
+    },
+    "London System, with Be2": {
+      "games": 409,
+      "moves": "d4 Nf6 Nf3 g6 Bf4 Bg7 e3 d6 Be2"
+    },
+    "Marienbad System": {
+      "games": 338,
+      "moves": "d4 Nf6 Nf3 b6 g3 Bb7 Bg2 c5"
+    },
+    "Mexican Defense": {
+      "games": 2090,
+      "moves": "d4 Nf6 c4 Nc6"
+    },
+    "Mieses Opening": {
+      "games": 829,
+      "moves": "d3"
+    },
+    "Mikenas Defense": {
+      "games": 1699,
+      "moves": "d4 Nc6"
+    },
+    "Modern Defense": {
+      "games": 35861,
+      "moves": "e4 g6"
+    },
+    "Montevideo Defense": {
+      "games": 20,
+      "moves": "d4 Nc6 d5 Nb8"
+    },
+    "Neo-Grünfeld Defense": {
+      "games": 1382,
+      "moves": "d4 Nf6 c4 g6 f3 d5"
+    },
+    "Nimzo-Indian Defense": {
+      "games": 90864,
+      "moves": "d4 Nf6 c4 e6 Nc3 Bb4"
+    },
+    "Nimzo-Larsen Attack": {
+      "games": 11637,
+      "moves": "b3"
+    },
+    "Nimzowitsch Defense": {
+      "games": 6513,
+      "moves": "e4 Nc6"
+    },
+    "Old Indian Defense": {
+      "games": 6629,
+      "moves": "d4 d6 c4"
+    },
+    "Owen Defense": {
+      "games": 2015,
+      "moves": "e4 b6"
+    },
+    "Paleface Attack": {
+      "games": 104,
+      "moves": "d4 Nf6 f3"
+    },
+    "Petrov's Defense": {
+      "games": 36198,
+      "moves": "e4 e5 Nf3 Nf6"
+    },
+    "Philidor Defense": {
+      "games": 6612,
+      "moves": "e4 e5 Nf3 d6"
+    },
+    "Pirc Defense": {
+      "games": 46459,
+      "moves": "e4 d6"
+    },
+    "Polish Defense": {
+      "games": 676,
+      "moves": "d4 b5"
+    },
+    "Polish Opening": {
+      "games": 2269,
+      "moves": "b4"
+    },
+    "Polish Opening, with d5": {
+      "games": 393,
+      "moves": "b4 d5"
+    },
+    "Ponziani Opening": {
+      "games": 1594,
+      "moves": "e4 e5 Nf3 Nc6 c3"
+    },
+    "Portuguese Opening": {
+      "games": 66,
+      "moves": "e4 e5 Bb5"
+    },
+    "Pseudo Queen's Indian Defense": {
+      "games": 3171,
+      "moves": "d4 Nf6 Nf3 b6"
+    },
+    "Pterodactyl Defense": {
+      "games": 187,
+      "moves": "Nf3 c5 c4 g6 d4 Bg7 e4 Qa5+ Nc3 d6"
+    },
+    "Queen's Gambit": {
+      "games": 215722,
+      "moves": "d4 d5 c4"
+    },
+    "Queen's Gambit Accepted": {
+      "games": 25393,
+      "moves": "d4 d5 c4 dxc4"
+    },
+    "Queen's Gambit Declined": {
+      "games": 80807,
+      "moves": "d4 d5 c4 e6"
+    },
+    "Queen's Indian Accelerated": {
+      "games": 1896,
+      "moves": "d4 Nf6 c4 b6"
+    },
+    "Queen's Indian Defense": {
+      "games": 59306,
+      "moves": "d4 Nf6 c4 e6 Nf3 b6"
+    },
+    "Queen's Indian Defense, with e3": {
+      "games": 487,
+      "moves": "d4 Nf6 c4 e6 Nf3 d5 e3 b6 Nc3 Bb7"
+    },
+    "Queen's Indian Defense, with e3, Bb4+ Line": {
+      "games": 565,
+      "moves": "d4 Nf6 c4 e6 Nf3 Bb4+ Nbd2 b6 e3 Bb7"
+    },
+    "Queen's Pawn Game": {
+      "games": 1070515,
+      "moves": "d4"
+    },
+    "Queen's Pawn, Mengarini Attack": {
+      "games": 3,
+      "moves": "d4 Nf6 c4 g6 Qc2"
+    },
+    "Rapport-Jobava System": {
+      "games": 4342,
+      "moves": "d4 d5 Nc3 Nf6 Bf4"
+    },
+    "Rapport-Jobava System, with e6": {
+      "games": 136,
+      "moves": "d4 d5 Nc3 e6 Bf4"
+    },
+    "Rat Defense": {
+      "games": 377,
+      "moves": "e4 d6 f4"
+    },
+    "Réti Opening": {
+      "games": 18127,
+      "moves": "Nf3 d5 c4"
+    },
+    "Richter-Veresov Attack": {
+      "games": 4116,
+      "moves": "d4 Nf6 Nc3 d5 Bg5"
+    },
+    "Robatsch Defense": {
+      "games": 549,
+      "moves": "d4 d6 Nf3 g6 c4 Bg7 e4 Bg4"
+    },
+    "Rubinstein Opening": {
+      "games": 1442,
+      "moves": "d4 Nf6 Nf3 e6 e3 c5 Bd3 d5 b3"
+    },
+    "Ruy Lopez": {
+      "games": 172668,
+      "moves": "e4 e5 Nf3 Nc6 Bb5"
+    },
+    "Saragossa Opening": {
+      "games": 358,
+      "moves": "c3"
+    },
+    "Scandinavian Defense": {
+      "games": 24938,
+      "moves": "e4 d5"
+    },
+    "Scotch Game": {
+      "games": 23542,
+      "moves": "e4 e5 Nf3 Nc6 d4"
+    },
+    "Semi-Slav Defense": {
+      "games": 58754,
+      "moves": "d4 d5 c4 c6 Nf3 Nf6 Nc3 e6"
+    },
+    "Semi-Slav Defense Accepted": {
+      "games": 4892,
+      "moves": "d4 d5 c4 c6 Nf3 Nf6 Nc3 e6 Bg5 dxc4"
+    },
+    "Sicilian Defense": {
+      "games": 627286,
+      "moves": "e4 c5"
+    },
+    "Slav Defense": {
+      "games": 111032,
+      "moves": "d4 d5 c4 c6"
+    },
+    "Slav Indian": {
+      "games": 4893,
+      "moves": "d4 Nf6 c4 c6"
+    },
+    "Sodium Attack": {
+      "games": 20,
+      "moves": "Na3"
+    },
+    "St. George Defense": {
+      "games": 482,
+      "moves": "e4 a6"
+    },
+    "Tarrasch Defense": {
+      "games": 5401,
+      "moves": "d4 d5 c4 e6 Nc3 c5"
+    },
+    "Three Knights Opening": {
+      "games": 15562,
+      "moves": "e4 e5 Nf3 Nc6 Nc3"
+    },
+    "Torre Attack": {
+      "games": 7162,
+      "moves": "d4 Nf6 Nf3 e6 Bg5"
+    },
+    "Trompowsky Attack": {
+      "games": 23860,
+      "moves": "d4 Nf6 Bg5"
+    },
+    "Valencia Opening": {
+      "games": 6,
+      "moves": "d3 e5 Nd2"
+    },
+    "Van Geet Opening": {
+      "games": 4105,
+      "moves": "Nc3"
+    },
+    "Van't Kruijs Opening": {
+      "games": 937,
+      "moves": "e3"
+    },
+    "Vienna Gambit, with Max Lange Defense": {
+      "games": 319,
+      "moves": "e4 e5 Nc3 Nc6 f4"
+    },
+    "Vienna Game": {
+      "games": 8538,
+      "moves": "e4 e5 Nc3"
+    },
+    "Vulture Defense": {
+      "games": 123,
+      "moves": "d4 Nf6 c4 c5 d5 Ne4"
+    },
+    "Wade Defense": {
+      "games": 4937,
+      "moves": "d4 d6 Nf3 Bg4"
+    },
+    "Ware Defense": {
+      "games": 3,
+      "moves": "e4 a5"
+    },
+    "Ware Opening": {
+      "games": 30,
+      "moves": "a4"
+    },
+    "Yusupov-Rubinstein System": {
+      "games": 7767,
+      "moves": "d4 Nf6 Nf3 e6 e3"
+    },
+    "Zaire Defense": {
+      "games": 0,
+      "moves": "d4 Nc6 d5 Nb8 e4 Nf6 e5 Ng8"
+    },
+    "Zukertort Defense": {
+      "games": 1,
+      "moves": "Nf3 Nh6 d4 g6"
+    },
+    "Zukertort Opening": {
+      "games": 303300,
+      "moves": "Nf3"
+    }
+  }
+}

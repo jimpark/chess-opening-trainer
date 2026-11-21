@@ -10,20 +10,41 @@ export interface Family {
   eco: string;
   /** True for a PGN the user imported. */
   imported: boolean;
+  /** Games that reached the family's main position, when known. */
+  games: number | undefined;
 }
 
-export function families(book: OpeningBook): Family[] {
+export type FamilySort = "popularity" | "name" | "lines";
+
+/** Sorts families; families without a game count go last when sorting by popularity. */
+export function sortFamilies(list: Family[], by: FamilySort): Family[] {
+  const byName = (a: Family, b: Family) => a.name.localeCompare(b.name);
+  const compare: Record<FamilySort, (a: Family, b: Family) => number> = {
+    popularity: (a, b) => (b.games ?? -1) - (a.games ?? -1) || byName(a, b),
+    name: byName,
+    lines: (a, b) => b.lineCount - a.lineCount || byName(a, b),
+  };
+  return [...list].sort(compare[by]);
+}
+
+export function families(book: OpeningBook, games: Readonly<Record<string, number>> = {}): Family[] {
   const byName = new Map<string, Family>();
   for (const line of book.lines) {
     const f = byName.get(line.family);
-    if (!f)
-      byName.set(line.family, { name: line.family, lineCount: 1, eco: line.eco, imported: line.source === "import" });
-    else {
+    if (!f) {
+      byName.set(line.family, {
+        name: line.family,
+        lineCount: 1,
+        eco: line.eco,
+        imported: line.source === "import",
+        games: games[line.family],
+      });
+    } else {
       f.lineCount++;
       if (line.eco && (!f.eco || line.eco < f.eco)) f.eco = line.eco;
     }
   }
-  return [...byName.values()].sort((a, b) => b.lineCount - a.lineCount || a.name.localeCompare(b.name));
+  return sortFamilies([...byName.values()], "lines");
 }
 
 export interface StudyNode {

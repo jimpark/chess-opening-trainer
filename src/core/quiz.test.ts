@@ -11,7 +11,15 @@ import {
   turnOf,
   userMove,
 } from "./quiz";
-import { buildStudyTree, doneLeafCount, families, nameOf, nearestOpenBranch } from "./study";
+import {
+  buildStudyTree,
+  doneLeafCount,
+  families,
+  nameOf,
+  nearestOpenBranch,
+  sortFamilies,
+  type FamilySort,
+} from "./study";
 
 function sampleBook(): OpeningBook {
   const book = new OpeningBook();
@@ -31,6 +39,15 @@ describe("study tree", () => {
       ["King's Pawn Game", 1],
       ["Scotch Game", 1],
     ]);
+  });
+
+  it("sorts families by popularity, name or line count", () => {
+    const list = families(sampleBook(), { "Scotch Game": 900, "King's Pawn Game": 5000 });
+    const names = (by: FamilySort) => sortFamilies(list, by).map((f) => f.name);
+    // Italian Game has no game count, so it goes last by popularity.
+    expect(names("popularity")).toEqual(["King's Pawn Game", "Scotch Game", "Italian Game"]);
+    expect(names("name")).toEqual(["Italian Game", "King's Pawn Game", "Scotch Game"]);
+    expect(names("lines")).toEqual(["Italian Game", "King's Pawn Game", "Scotch Game"]);
   });
 
   it("builds a tree of the family's lines with leaves sorted first by size", () => {

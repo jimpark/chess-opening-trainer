@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6f9b4c"/>
+      <stop offset="1" stop-color="#2f4f26"/>
+    </linearGradient>
+    <linearGradient id="piece" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fbf7ec"/>
+      <stop offset="1" stop-color="#d9cfb8"/>
+    </linearGradient>
+    <linearGradient id="cap" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b2b2e"/>
+      <stop offset="1" stop-color="#121214"/>
+    </linearGradient>
+  </defs>
+
+  <!-- macOS-style rounded square -->
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
+
+  <!-- Knight -->
+  <g fill="url(#piece)" stroke="#2a2a1f" stroke-width="14" stroke-linejoin="round">
+    <!-- base -->
+    <path d="M300 842 Q300 806 336 806 L688 806 Q724 806 724 842 L724 852 Q724 870 706 870 L318 870 Q300 870 300 852 Z"/>
+    <path d="M352 806 L366 752 L658 752 L672 806 Z"/>
+    <!-- head and neck, facing left -->
+    <path d="M384 752
+             C 380 690, 410 640, 468 596
+             C 430 600, 380 604, 340 606
+             C 300 608, 270 588, 272 556
+             C 274 530, 296 508, 318 490
+             L 430 372
+             C 448 352, 470 340, 494 336
+             L 520 290
+             L 548 334
+             C 640 344, 706 420, 712 540
+             C 716 620, 700 690, 662 752 Z"/>
+  </g>
+  <!-- eye and nostril -->
+  <circle cx="452" cy="420" r="17" fill="#2a2a1f"/>
+  <circle cx="306" cy="560" r="9" fill="#2a2a1f"/>
+  <!-- mane notches -->
+  <g stroke="#2a2a1f" stroke-width="12" stroke-linecap="round" fill="none">
+    <path d="M640 420 L606 440"/>
+    <path d="M670 490 L632 504"/>
+    <path d="M682 566 L644 574"/>
+    <path d="M674 642 L636 646"/>
+  </g>
+
+  <!-- Graduation cap, tilted back on the head -->
+  <g transform="rotate(-12 540 300)">
+    <!-- skull cap -->
+    <path d="M462 300 L462 352 Q540 386 618 352 L618 300 Z" fill="url(#cap)" stroke="#0a0a0a" stroke-width="10" stroke-linejoin="round"/>
+    <!-- board -->
+    <path d="M540 218 L700 280 L540 342 L380 280 Z" fill="url(#cap)" stroke="#0a0a0a" stroke-width="10" stroke-linejoin="round"/>
+    <!-- tassel -->
+    <circle cx="540" cy="280" r="12" fill="#e8b93c"/>
+    <path d="M540 280 Q640 300 660 330 L660 400" stroke="#e8b93c" stroke-width="10" fill="none" stroke-linecap="round"/>
+    <path d="M648 396 L672 396 L680 446 L640 446 Z" fill="#e8b93c" stroke="#a87e1c" stroke-width="4" stroke-linejoin="round"/>
+  </g>
+</svg>
