@@ -186,6 +186,11 @@ The board draws an arrow for each book move when there are five or fewer, and al
 move under the mouse. Keys: ← and → step through the move list, Home and End jump to its ends,
 F flips the board. Moving back keeps the later moves until a different move is played.
 
+"Explore from here" in Learn (always, and at the end of a line) and in Quiz and Review (when a
+line is complete) opens the current position in Explore with the engine on and the studied side
+at the bottom, so the user can see the engine's best continuations past the book. The Study tab
+keeps its place.
+
 The Engine button (or E) turns on Stockfish: an evaluation bar beside the board, a blue arrow
 for the best move, and the top three lines with scores. Clicking a move in a line plays the line
 up to that move on the board. Analysis stops at depth 24 so an idle board does not keep the CPU

@@ -15,11 +15,15 @@ interface Props {
   book: OpeningBook;
   rep: RepertoireState;
   db: Db | undefined;
+  /** False while Quiz or another tab is shown; keys are then ignored. */
+  active: boolean;
   onQuiz: () => void;
+  /** Opens a position, as UCI moves from the start, in Explore. */
+  onExplore: (ucis: string[], orientation: "white" | "black") => void;
 }
 
 /** Walks through every line of an opening. The user picks the branch at each fork. */
-export function LearnView({ book, rep, db, onQuiz }: Props) {
+export function LearnView({ book, rep, db, active, onQuiz, onExplore }: Props) {
   const { tree, color, seen, markLine } = rep;
   const [nodeId, setNodeId] = useState(tree.root.id);
   const [hovered, setHovered] = useState<number | undefined>();
@@ -47,6 +51,7 @@ export function LearnView({ book, rep, db, onQuiz }: Props) {
   }, [node, seen]);
 
   useEffect(() => {
+    if (!active) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight") forward();
       else if (e.key === "ArrowLeft") back();
@@ -55,7 +60,7 @@ export function LearnView({ book, rep, db, onQuiz }: Props) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [forward, back]);
+  }, [active, forward, back]);
 
   const onMove = (uci: string) => {
     const child = node.children.find((c) => c.ucis.at(-1) === uci);
@@ -89,6 +94,9 @@ export function LearnView({ book, rep, db, onQuiz }: Props) {
           </button>
           <button onClick={forward} disabled={!next} title="Next move (→)">
             Next ▶
+          </button>
+          <button onClick={() => onExplore(node.ucis, color)} title="Open this position in Explore with the engine on">
+            Explore from here
           </button>
         </div>
       </div>
@@ -138,6 +146,7 @@ export function LearnView({ book, rep, db, onQuiz }: Props) {
             <p>
               <strong>End of line.</strong> {node.endingNames[0]}
             </p>
+            <button onClick={() => onExplore(node.ucis, color)}>Explore from here with the engine</button>
             {allSeen ? (
               <>
                 <p>You have seen all {tree.leaves.length} lines.</p>

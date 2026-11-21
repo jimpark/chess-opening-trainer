@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { lichessBook } from "./bookData";
 import { addImportedLines, linesFromPgn } from "./core/pgnImport";
 import { imports, type Db } from "./core/store";
 import { database } from "./platform/db";
-import { ExploreView } from "./ui/ExploreView";
+import { ExploreView, type ExploreRequest } from "./ui/ExploreView";
 import { ReviewView } from "./ui/ReviewView";
 import { StudyView, type Selection } from "./ui/StudyView";
 import "./App.css";
@@ -17,6 +17,12 @@ export default function App() {
   const [selection, setSelection] = useState<Selection | undefined>();
   const [db, setDb] = useState<Db | undefined>();
   const [dbReady, setDbReady] = useState(false);
+  const [exploreRequest, setExploreRequest] = useState<ExploreRequest | undefined>();
+  /** Opens a position, given as UCI moves from the start, in Explore with the engine on. */
+  const openInExplore = useCallback((ucis: string[], orientation: "white" | "black") => {
+    setExploreRequest((r) => ({ ucis, orientation, id: (r?.id ?? 0) + 1 }));
+    setTab("explore");
+  }, []);
   /** Incremented when an import adds lines to the book, to rebuild views that read it. */
   const [bookVersion, setBookVersion] = useState(0);
 
@@ -49,8 +55,11 @@ export default function App() {
         {!db && <span className="muted nav-note">Progress is not saved: no database</span>}
       </nav>
       <main key={bookVersion}>
-        {tab === "study" && (
+        {/* Tabs stay mounted so switching away and back keeps each tab's position. */}
+        <div className="tab-pane" hidden={tab !== "study"}>
           <StudyView
+            active={tab === "study"}
+            onExplore={openInExplore}
             book={book}
             db={db}
             selection={selection}
@@ -60,9 +69,11 @@ export default function App() {
               setSelection({ family: name, color });
             }}
           />
-        )}
-        {tab === "review" && (
+        </div>
+        <div className="tab-pane" hidden={tab !== "review"}>
           <ReviewView
+            active={tab === "review"}
+            onExplore={openInExplore}
             book={book}
             db={db}
             onStudy={(s) => {
@@ -70,8 +81,10 @@ export default function App() {
               setTab("study");
             }}
           />
-        )}
-        {tab === "explore" && <ExploreView book={book} db={db} />}
+        </div>
+        <div className="tab-pane" hidden={tab !== "explore"}>
+          <ExploreView active={tab === "explore"} request={exploreRequest} book={book} db={db} />
+        </div>
       </main>
     </div>
   );

@@ -24,9 +24,13 @@ interface Props {
   onSelect: (s: Selection | undefined) => void;
   /** Called after a PGN import adds an opening to the book. */
   onImported: (name: string, color: Color) => void;
+  /** False while another tab is shown. */
+  active: boolean;
+  /** Opens a position, as UCI moves from the start, in Explore. */
+  onExplore: (ucis: string[], orientation: "white" | "black") => void;
 }
 
-export function StudyView({ book, db, selection, onSelect, onImported }: Props) {
+export function StudyView({ book, db, selection, onSelect, onImported, active, onExplore }: Props) {
   const [color, setColor] = useState<Color>(selection?.color ?? "white");
   const [importing, setImporting] = useState(false);
   if (importing && db) {
@@ -45,6 +49,7 @@ export function StudyView({ book, db, selection, onSelect, onImported }: Props) 
         onColor={setColor}
         onPick={(family) => onSelect({ family, color })}
         onImport={() => setImporting(true)}
+        active={active}
       />
     );
   }
@@ -55,6 +60,8 @@ export function StudyView({ book, db, selection, onSelect, onImported }: Props) 
       db={db}
       selection={selection}
       onChange={() => onSelect(undefined)}
+      active={active}
+      onExplore={onExplore}
     />
   );
 }
@@ -64,14 +71,23 @@ function Study({
   db,
   selection,
   onChange,
+  active,
+  onExplore,
 }: {
   book: OpeningBook;
   db: Db | undefined;
   selection: Selection;
   onChange: () => void;
+  active: boolean;
+  onExplore: (ucis: string[], orientation: "white" | "black") => void;
 }) {
   const [mode, setMode] = useState<Mode>("learn");
   const rep = useRepertoire(book, db, selection.family, selection.color);
+  // A review in the Review tab can change this opening's cards while Study is hidden.
+  const { reloadCards } = rep;
+  useEffect(() => {
+    if (active) reloadCards();
+  }, [active, reloadCards]);
   const counts = useMemo(
     () => countCards(rep.tree, rep.color, rep.cards, new Date()),
     [rep.tree, rep.color, rep.cards],
@@ -100,10 +116,23 @@ function Study({
       </div>
       {!rep.loaded ? (
         <p className="loading">Loading…</p>
-      ) : mode === "learn" ? (
-        <LearnView book={book} rep={rep} db={db} onQuiz={() => setMode("quiz")} />
       ) : (
-        <QuizView book={book} rep={rep} />
+        // Both modes stay mounted so switching between them keeps each one's position.
+        <>
+          <div className="mode-pane" hidden={mode !== "learn"}>
+            <LearnView
+              book={book}
+              rep={rep}
+              db={db}
+              active={active && mode === "learn"}
+              onQuiz={() => setMode("quiz")}
+              onExplore={onExplore}
+            />
+          </div>
+          <div className="mode-pane" hidden={mode !== "quiz"}>
+            <QuizView book={book} rep={rep} onExplore={onExplore} />
+          </div>
+        </>
       )}
     </div>
   );
@@ -116,8 +145,9 @@ function OpeningPicker(props: {
   onColor: (c: Color) => void;
   onPick: (family: string) => void;
   onImport: () => void;
+  active: boolean;
 }) {
-  const { book, db, color, onColor, onPick, onImport } = props;
+  const { book, db, color, onColor, onPick, onImport, active } = props;
   const [confirmDelete, setConfirmDelete] = useState<string | undefined>();
   const all = useMemo(() => families(book, familyGames), [book]);
   const [sort, setSortState] = useState<FamilySort>(savedSort);
@@ -131,9 +161,10 @@ function OpeningPicker(props: {
   };
   const [query, setQuery] = useState("");
   const [summaries, setSummaries] = useState<RepertoireSummary[]>([]);
+  // Reload when shown: reviews and quizzes in other tabs change the due counts.
   useEffect(() => {
-    if (db) void repertoireSummaries(db).then(setSummaries);
-  }, [db]);
+    if (db && active) void repertoireSummaries(db).then(setSummaries);
+  }, [db, active]);
   const started = useMemo(
     () => new Map(summaries.filter((s) => s.color === color).map((s) => [s.family, s])),
     [summaries, color],

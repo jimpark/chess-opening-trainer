@@ -31,6 +31,8 @@ export interface RepertoireState {
   clearLines(kind: ProgressKind): void;
   /** Applies a quiz answer to its card. With `onlyExisting`, positions without a card are skipped. */
   record(result: MoveResult, onlyExisting?: boolean): void;
+  /** Reloads cards from the database, for changes made elsewhere, such as in a review. */
+  reloadCards(): void;
 }
 
 /** Loads and saves one opening and color: its cards and line progress. Works without a database. */
@@ -98,5 +100,9 @@ export function useRepertoire(book: OpeningBook, db: Db | undefined, family: str
     [db, repId, tree],
   );
 
-  return { tree, color, loaded, cards, seen, completed, markLine, clearLines, record };
+  const reloadCards = useCallback(() => {
+    if (db && repId !== undefined) void cardsOf(db, repId).then(setCards);
+  }, [db, repId]);
+
+  return { tree, color, loaded, cards, seen, completed, markLine, clearLines, record, reloadCards };
 }

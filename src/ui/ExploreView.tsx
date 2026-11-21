@@ -21,12 +21,37 @@ interface Cursor {
   ply: number;
 }
 
-export function ExploreView({ book, db }: { book: OpeningBook; db: Db | undefined }) {
+/** A position another tab asks Explore to show; a new `id` repeats a request for the same moves. */
+export interface ExploreRequest {
+  ucis: string[];
+  /** The side the user studies, shown at the bottom. */
+  orientation: "white" | "black";
+  id: number;
+}
+
+interface Props {
+  book: OpeningBook;
+  db: Db | undefined;
+  /** False while another tab is shown: keys are ignored and the engine pauses. */
+  active: boolean;
+  /** Shows this position with the engine on, replacing the current moves. */
+  request?: ExploreRequest;
+}
+
+export function ExploreView({ book, db, active, request }: Props) {
   const [cursor, setCursor] = useState<Cursor>({ moves: [], ply: 0 });
   const [orientation, setOrientation] = useState<"white" | "black">("white");
   const [hovered, setHovered] = useState<string | undefined>();
   const [query, setQuery] = useState("");
   const [engineOn, setEngineOn] = useState(false);
+
+  useEffect(() => {
+    if (!request) return;
+    setCursor({ moves: request.ucis, ply: request.ucis.length });
+    setOrientation(request.orientation);
+    setQuery("");
+    setEngineOn(true);
+  }, [request]);
 
   const path = useMemo(() => cursor.moves.slice(0, cursor.ply), [cursor]);
   const state = useMemo(() => explore(book, path)!, [book, path]);
@@ -37,7 +62,11 @@ export function ExploreView({ book, db }: { book: OpeningBook; db: Db | undefine
   );
   const lastMove = path.at(-1);
   const beforeLast = useMemo(() => (path.length > 0 ? epdOf(replay(path.slice(0, -1))!) : undefined), [path]);
-  const engine = useAnalysis(engineOn ? state.fen : undefined, { depth: EXPLORE_DEPTH, multipv: 3 }, "explore");
+  const engine = useAnalysis(
+    engineOn && active ? state.fen : undefined,
+    { depth: EXPLORE_DEPTH, multipv: 3 },
+    "explore",
+  );
   const best = engine.analysis?.lines[0];
   const allSans = useMemo(() => explore(book, cursor.moves)?.sans ?? [], [book, cursor.moves]);
 
@@ -52,6 +81,7 @@ export function ExploreView({ book, db }: { book: OpeningBook; db: Db | undefine
   }, []);
 
   useEffect(() => {
+    if (!active) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement) return;
       if (e.key === "ArrowLeft") goTo(cursor.ply - 1);
@@ -65,7 +95,7 @@ export function ExploreView({ book, db }: { book: OpeningBook; db: Db | undefine
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [cursor, goTo]);
+  }, [active, cursor, goTo]);
 
   const bestMove = best?.pv[0];
   const shapes = useMemo<DrawShape[]>(() => {

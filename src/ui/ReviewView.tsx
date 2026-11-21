@@ -10,29 +10,37 @@ interface Props {
   book: OpeningBook;
   db: Db | undefined;
   onStudy: (s: Selection) => void;
+  /** False while another tab is shown. */
+  active: boolean;
+  /** Opens a position, as UCI moves from the start, in Explore. */
+  onExplore: (ucis: string[], orientation: "white" | "black") => void;
 }
 
 /** Repertoires with due positions, and review sessions over them. */
-export function ReviewView({ book, db, onStudy }: Props) {
+export function ReviewView({ book, db, onStudy, active, onExplore }: Props) {
   const [summaries, setSummaries] = useState<RepertoireSummary[] | undefined>();
-  const [active, setActive] = useState<Selection | undefined>();
+  const [session, setSession] = useState<Selection | undefined>();
 
   const load = useCallback(() => {
     if (db) void repertoireSummaries(db).then(setSummaries);
   }, [db]);
-  useEffect(load, [load]);
+  // Reload when shown: quizzes in the Study tab add and reschedule cards.
+  useEffect(() => {
+    if (active) load();
+  }, [active, load]);
 
   if (!db) return <p className="loading">Reviews need the database, which is not available.</p>;
 
-  if (active) {
+  if (session) {
     return (
       <ReviewSession
-        key={`${active.family}-${active.color}`}
+        key={`${session.family}-${session.color}`}
         book={book}
         db={db}
-        selection={active}
+        selection={session}
+        onExplore={onExplore}
         onFinish={() => {
-          setActive(undefined);
+          setSession(undefined);
           load();
         }}
       />
@@ -64,7 +72,7 @@ export function ReviewView({ book, db, onStudy }: Props) {
               {s.cards} learned{s.due === 0 && s.nextDue ? ` · next ${formatWhen(new Date(s.nextDue))}` : ""}
             </span>
             {s.due > 0 && (
-              <button className="primary" onClick={() => setActive({ family: s.family, color: s.color })}>
+              <button className="primary" onClick={() => setSession({ family: s.family, color: s.color })}>
                 Review {s.due}
               </button>
             )}
@@ -78,8 +86,14 @@ export function ReviewView({ book, db, onStudy }: Props) {
   );
 }
 
-function ReviewSession(props: { book: OpeningBook; db: Db; selection: Selection; onFinish: () => void }) {
-  const { book, db, selection, onFinish } = props;
+function ReviewSession(props: {
+  book: OpeningBook;
+  db: Db;
+  selection: Selection;
+  onFinish: () => void;
+  onExplore: (ucis: string[], orientation: "white" | "black") => void;
+}) {
+  const { book, db, selection, onFinish, onExplore } = props;
   const rep = useRepertoire(book, db, selection.family, selection.color);
   // Plan once, when the cards have loaded; answers during the session change the cards.
   const [plan, setPlan] = useState<number[] | undefined>();
@@ -100,7 +114,7 @@ function ReviewSession(props: { book: OpeningBook; db: Db; selection: Selection;
       {!plan ? (
         <p className="loading">Loading…</p>
       ) : review ? (
-        <QuizView book={book} rep={rep} review={review} />
+        <QuizView book={book} rep={rep} review={review} onExplore={onExplore} />
       ) : (
         <p className="loading">
           Nothing is due in this opening.{" "}

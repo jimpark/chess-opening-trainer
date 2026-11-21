@@ -41,9 +41,11 @@ interface Props {
   rep: RepertoireState;
   /** In a review, the lines to play. Only positions that already have cards are graded. */
   review?: ReviewPlan;
+  /** Opens a position, as UCI moves from the start, in Explore. */
+  onExplore: (ucis: string[], orientation: "white" | "black") => void;
 }
 
-export function QuizView({ book, rep, review }: Props) {
+export function QuizView({ book, rep, review, onExplore }: Props) {
   const { tree, color } = rep;
   const [s, setS] = useState<QuizState>(() =>
     review ? startQuiz(tree, color, review.targets[0]) : { ...startQuiz(tree, color), done: rep.completed },
@@ -223,6 +225,12 @@ export function QuizView({ book, rep, review }: Props) {
               ))}
             </ul>
           </section>
+        )}
+
+        {turn === "complete" && (
+          <button className="explore-here" onClick={() => onExplore(node.ucis, color)}>
+            Explore from here with the engine
+          </button>
         )}
 
         {turn === "complete" && review && (
