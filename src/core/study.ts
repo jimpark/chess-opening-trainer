@@ -142,6 +142,49 @@ export function doneLeafCount(node: StudyNode, done: ReadonlySet<number>): numbe
   return node.children.reduce((sum, c) => sum + doneLeafCount(c, done), 0);
 }
 
+export interface NextMove {
+  node: StudyNode;
+  /** True when the move comes from another branch that reaches the same position. */
+  transposed: boolean;
+}
+
+/**
+ * Moves from `node`'s position: its own children first, then moves that other branches play from
+ * the same position, so a line that ends where another move order continues is not a dead end.
+ * A move offered by several branches appears once, preferring the node's own child, then the
+ * branch with the most lines below it. Following a transposed move continues in that branch, with
+ * its move order.
+ */
+export function nextMoves(tree: StudyTree, node: StudyNode): NextMove[] {
+  const own = new Set(node.children.map((c) => c.ucis.at(-1)));
+  const foreign = new Map<string, StudyNode>();
+  for (const other of tree.byEpd.get(node.epd) ?? []) {
+    if (other === node) continue;
+    for (const c of other.children) {
+      const uci = c.ucis.at(-1)!;
+      if (own.has(uci)) continue;
+      const prev = foreign.get(uci);
+      if (!prev || c.leafCount > prev.leafCount) foreign.set(uci, c);
+    }
+  }
+  return [
+    ...node.children.map((c) => ({ node: c, transposed: false })),
+    ...[...foreign.values()].sort((a, b) => b.leafCount - a.leafCount).map((c) => ({ node: c, transposed: true })),
+  ];
+}
+
+/** Nearest node at or above `node` with a next move, own or transposed, whose lines are not all done. */
+export function nearestOpenPosition(
+  tree: StudyTree,
+  node: StudyNode,
+  done: ReadonlySet<number>,
+): StudyNode | undefined {
+  for (let n: StudyNode | undefined = node; n; n = n.parent) {
+    if (nextMoves(tree, n).some((m) => !subtreeDone(m.node, done))) return n;
+  }
+  return undefined;
+}
+
 /** Nearest node at or above `node` with a child whose subtree is not done. */
 export function nearestOpenBranch(node: StudyNode, done: ReadonlySet<number>): StudyNode | undefined {
   for (let n: StudyNode | undefined = node; n; n = n.parent) {

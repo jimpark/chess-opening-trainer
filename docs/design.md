@@ -225,8 +225,16 @@ takes the first branch with unseen lines. The panel lists every branch with its 
 seen-out-of-total count, and the user clicks one to follow it instead. Moves played on the board
 also follow a branch when they match one. Clicking a move in the move list returns to it.
 
-At the end of a line, "Next unseen line" jumps back to the nearest branch point with unseen
-lines. When every line has been seen, the panel offers to start the quiz. The comment on the last
+Transpositions: at every position Learn also offers the moves that other branches of the opening
+play from the same position, marked "transposes" (`nextMoves` in `src/core/study.ts`). A line
+that ends where another move order continues is therefore not a dead end. Following such a move
+continues in the other branch: the move list switches to that branch's move order, and a note
+shows the order the user played. Line counts and progress do not change; merging the branches
+into one tree instead would count each continuation once per move order (Queen's Gambit Declined
+would grow from 133 lines to 1,028). Quiz keeps to each line's own moves.
+
+At the end of a line, "Next unseen line" jumps back to the nearest position, by either move
+order, with unseen lines. When every line has been seen, the panel offers to start the quiz. The comment on the last
 move shows below the move list.
 
 ### Quiz

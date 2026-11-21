@@ -701,3 +701,8 @@ button.delete.confirm {
   border-color: var(--border);
   padding: 4px 12px;
 }
+
+.transposed-note {
+  margin: 6px 0 0;
+  font-size: 13px;
+}

@@ -17,6 +17,9 @@ import {
   families,
   nameOf,
   nearestOpenBranch,
+  nearestOpenPosition,
+  nextMoves,
+  pathTo,
   sortFamilies,
   type FamilySort,
 } from "./study";
@@ -70,6 +73,46 @@ describe("study tree", () => {
     const done = new Set([giuoco.id]);
     expect(nearestOpenBranch(giuoco, done)!.san).toBe("Bc4");
     expect(doneLeafCount(tree.root, done)).toBe(1);
+  });
+});
+
+describe("nextMoves", () => {
+  it("continues a line that ends where another move order goes on", () => {
+    const book = sampleBook();
+    const tree = buildStudyTree(book, "Italian Game");
+    // "Italian Game: Bishop First" ends after 1.e4 e5 2.Bc4 Nc6 3.Nf3, the position after
+    // 1.e4 e5 2.Nf3 Nc6 3.Bc4, where the main order continues with Bc5 and Nf6.
+    const bishopFirstEnd = tree.leaves.find((l) => l.san === "Nf3")!;
+    expect(bishopFirstEnd.children).toEqual([]);
+    const moves = nextMoves(tree, bishopFirstEnd);
+    expect(moves.map((m) => [m.node.san, m.transposed])).toEqual([
+      ["Bc5", true],
+      ["Nf6", true],
+    ]);
+    // Following a transposed move continues in the other branch.
+    expect(pathTo(moves[0].node).map((n) => n.san)).toEqual(["e4", "e5", "Nf3", "Nc6", "Bc4", "Bc5"]);
+  });
+
+  it("lists a node's own children first and once", () => {
+    const tree = buildStudyTree(sampleBook(), "Italian Game");
+    const mainBc4 = tree.nodes.find(
+      (n) =>
+        pathTo(n)
+          .map((p) => p.san)
+          .join(" ") === "e4 e5 Nf3 Nc6 Bc4",
+    )!;
+    expect(nextMoves(tree, mainBc4).map((m) => [m.node.san, m.transposed])).toEqual([
+      ["Bc5", false],
+      ["Nf6", false],
+    ]);
+  });
+
+  it("finds the nearest position with unseen lines through transpositions", () => {
+    const tree = buildStudyTree(sampleBook(), "Italian Game");
+    const bishopFirstEnd = tree.leaves.find((l) => l.san === "Nf3")!;
+    expect(nearestOpenPosition(tree, bishopFirstEnd, new Set([bishopFirstEnd.id]))).toBe(bishopFirstEnd);
+    const all = new Set(tree.leaves.map((l) => l.id));
+    expect(nearestOpenPosition(tree, bishopFirstEnd, all)).toBeUndefined();
   });
 });
 
