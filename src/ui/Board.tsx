@@ -45,7 +45,19 @@ export function Board({ pos, fen, orientation, lastMove, shapes, interactive = t
       draggable: { showGhost: true },
       highlight: { lastMove: true, check: true },
     });
-    return () => api.current?.destroy();
+    // Chessground measures the board once and re-measures only on scroll or window resize. Our
+    // layout can move the board without either (the eval bar pushes it right), which makes a
+    // dragged piece sit off the cursor and drop on the wrong square. Re-measuring at the start of
+    // each press fixes that; capture runs before chessground's own handler on the board.
+    const wrap = el.current!;
+    const remeasure = () => api.current?.state.dom.bounds.clear();
+    wrap.addEventListener("mousedown", remeasure, { capture: true });
+    wrap.addEventListener("touchstart", remeasure, { capture: true, passive: true });
+    return () => {
+      wrap.removeEventListener("mousedown", remeasure, { capture: true });
+      wrap.removeEventListener("touchstart", remeasure, { capture: true });
+      api.current?.destroy();
+    };
   }, []);
 
   useEffect(() => {
