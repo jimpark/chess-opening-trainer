@@ -718,3 +718,20 @@ button.delete.confirm {
 .families .eco {
   flex: 0 0 30px;
 }
+
+.movelist-flat {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  align-items: baseline;
+}
+
+.setup-note {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+
+.setup-note .link {
+  margin-left: 0;
+  padding: 0;
+}

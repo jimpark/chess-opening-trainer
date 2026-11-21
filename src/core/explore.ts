@@ -1,5 +1,6 @@
 import type { Position } from "chessops/chess";
 import { makeFen, parseFen } from "chessops/fen";
+import { parsePgn, startingPosition } from "chessops/pgn";
 import { makeSanAndPlay, parseSan } from "chessops/san";
 import { makeUci, parseUci } from "chessops/util";
 import { Chess } from "chessops/chess";
@@ -35,9 +36,22 @@ export interface ExploreState {
   transpositions: Transposition[];
 }
 
-/** Describes the position reached by playing `ucis` from the start. Returns undefined if a move is illegal. */
-export function explore(book: OpeningBook, ucis: string[]): ExploreState | undefined {
-  const pos = Chess.default();
+/** The position a FEN describes, or the standard start without one. Undefined for an invalid FEN. */
+export function startPosition(startFen?: string): Position | undefined {
+  if (!startFen) return Chess.default();
+  const setup = parseFen(startFen);
+  if (setup.isErr) return undefined;
+  const pos = Chess.fromSetup(setup.value);
+  return pos.isErr ? undefined : pos.value;
+}
+
+/**
+ * Describes the position reached by playing `ucis` from `startFen`, or from the standard start.
+ * Returns undefined if the FEN or a move is invalid.
+ */
+export function explore(book: OpeningBook, ucis: string[], startFen?: string): ExploreState | undefined {
+  const pos = startPosition(startFen);
+  if (!pos) return undefined;
   const sans: string[] = [];
   let named: BookLine | undefined;
 
@@ -135,34 +149,41 @@ export function sanLine(fen: string, ucis: string[]): string[] {
 }
 
 export interface PositionHit {
-  kind: "moves" | "fen";
-  /** Moves from the start that reach the position, when the book or the query gives them. */
-  ucis: string[] | undefined;
+  kind: "moves" | "fen" | "pgn";
+  /** Start position when it is not the standard one: a FEN outside the book, or a PGN's FEN header. */
+  startFen?: string;
+  /** Moves from the start position that reach the position. */
+  ucis: string[];
   sans: string[];
   inBook: boolean;
 }
 
 /**
- * Reads a query as a FEN or a move sequence ("1. e4 c5 2. Nf3", "e4 c5 Nf3"). For a FEN of a
- * book position, the moves are the shortest book line that reaches it. Returns undefined when the
- * query is neither.
+ * Reads a query as a PGN, a FEN or a move sequence ("1. e4 c5 2. Nf3", "e4 c5 Nf3"). For a FEN of
+ * a book position, the moves are the shortest book line that reaches it; any other FEN becomes
+ * the start position. A PGN gives its main line, from its FEN header if it has one. Returns
+ * undefined when the query is none of these.
  */
 export function findPosition(book: OpeningBook, query: string): PositionHit | undefined {
   const q = query.trim();
-  if (q.includes("/")) {
-    const setup = parseFen(q);
-    if (setup.isErr) return undefined;
-    const pos = Chess.fromSetup(setup.value);
-    if (pos.isErr) return undefined;
-    const p = book.get(epdOf(pos.value));
-    if (!p) return { kind: "fen", ucis: undefined, sans: [], inBook: false };
-    let best: { lineId: number; ply: number } | undefined;
-    for (const t of p.throughLines) if (!best || t.ply < best.ply) best = t;
-    const line = book.line(best!.lineId);
-    return { kind: "fen", ucis: line.ucis.slice(0, best!.ply), sans: line.sans.slice(0, best!.ply), inBook: true };
-  }
+  if (q.startsWith("[")) return fromPgn(book, q);
+  if (q.includes("/")) return fromFen(book, q);
+  return fromMoves(book, q) ?? (/[{(*]|1-0|0-1|1\/2/.test(q) ? fromPgn(book, q) : undefined);
+}
 
-  const tokens = q
+function fromFen(book: OpeningBook, fen: string): PositionHit | undefined {
+  const pos = startPosition(fen);
+  if (!pos) return undefined;
+  const p = book.get(epdOf(pos));
+  if (!p) return { kind: "fen", startFen: makeFen(pos.toSetup()), ucis: [], sans: [], inBook: false };
+  let best: { lineId: number; ply: number } | undefined;
+  for (const t of p.throughLines) if (!best || t.ply < best.ply) best = t;
+  const line = book.line(best!.lineId);
+  return { kind: "fen", ucis: line.ucis.slice(0, best!.ply), sans: line.sans.slice(0, best!.ply), inBook: true };
+}
+
+function fromMoves(book: OpeningBook, text: string): PositionHit | undefined {
+  const tokens = text
     .replace(/\d+\.(\.\.)?/g, " ")
     .split(/\s+/)
     .filter(Boolean);
@@ -179,6 +200,26 @@ export function findPosition(book: OpeningBook, query: string): PositionHit | un
   return { kind: "moves", ucis, sans, inBook: book.get(epdOf(pos)) !== undefined };
 }
 
+/** The first game's main line. Undefined when the text has no moves and no FEN header. */
+function fromPgn(book: OpeningBook, text: string): PositionHit | undefined {
+  const [game] = parsePgn(text);
+  if (!game) return undefined;
+  const start = startingPosition(game.headers);
+  if (start.isErr) return undefined;
+  const pos = start.value;
+  const startFen = game.headers.has("FEN") ? makeFen(pos.toSetup()) : undefined;
+  const ucis: string[] = [];
+  const sans: string[] = [];
+  for (let node = game.moves.children[0]; node; node = node.children[0]) {
+    const move = parseSan(pos, node.data.san);
+    if (!move) break;
+    ucis.push(makeUci(move));
+    sans.push(makeSanAndPlay(pos, move));
+  }
+  if (ucis.length === 0 && !startFen) return undefined;
+  return { kind: "pgn", startFen, ucis, sans, inBook: book.get(epdOf(pos)) !== undefined };
+}
+
 /** Lines that begin with `ucis`, shortest first. */
 export function linesWithPrefix(book: OpeningBook, ucis: string[], limit = 50): BookLine[] {
   const key = ucis.join(" ");
@@ -186,4 +227,11 @@ export function linesWithPrefix(book: OpeningBook, ucis: string[], limit = 50): 
     .filter((l) => l.ucis.length >= ucis.length && l.ucis.slice(0, ucis.length).join(" ") === key)
     .sort((a, b) => a.ucis.length - b.ucis.length || a.name.localeCompare(b.name))
     .slice(0, limit);
+}
+
+/** Ply number of the first move from `fen`: 0 for White's first move, 1 for Black's, and so on. */
+export function firstPlyOf(fen?: string): number {
+  if (!fen) return 0;
+  const [, turn, , , , fullmove] = fen.split(" ");
+  return (Math.max(1, Number(fullmove) || 1) - 1) * 2 + (turn === "b" ? 1 : 0);
 }

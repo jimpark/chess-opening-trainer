@@ -173,6 +173,18 @@ The Explore search box reads the query in this order (`findPosition` in `src/cor
 
 Imported lines are included. Results do not show spaced-repetition status yet.
 
+Explore can also start from any position, not only the standard start:
+
+- A FEN outside the book offers "Set up this position". The board starts there, move numbers
+  follow the FEN (a FEN with Black to move at move 52 numbers the first move "52…"), and the
+  engine analyzes from it. Book moves and names appear again if play reaches a book position.
+- A PGN is read for its first game's main line; headers, comments and variations are ignored. A
+  `FEN` header sets the start position.
+- Pasting a FEN, a PGN or a move list into the search box goes straight to the position. The
+  paste is read from the clipboard directly, because a single-line input drops a PGN's line
+  breaks.
+- "Back to the standard start" leaves a set-up position.
+
 ## Modes
 
 ### Explore

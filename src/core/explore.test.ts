@@ -95,10 +95,34 @@ describe("findPosition", () => {
     });
     expect(findPosition(book, "4k3/8/8/8/8/8/8/4K3 w - - 0 1")).toEqual({
       kind: "fen",
-      ucis: undefined,
+      startFen: "4k3/8/8/8/8/8/8/4K3 w - - 0 1",
+      ucis: [],
       sans: [],
       inBook: false,
     });
+  });
+
+  it("reads a PGN's main line, ignoring headers, comments and variations", () => {
+    const pgn = '[Event "Club"]\n[Result "*"]\n\n1. d4 {solid} d5 (1... Nf6 2. c4) 2. c4 e6 *';
+    expect(findPosition(sampleBook(), pgn)).toEqual({
+      kind: "pgn",
+      startFen: undefined,
+      ucis: ["d2d4", "d7d5", "c2c4", "e7e6"],
+      sans: ["d4", "d5", "c4", "e6"],
+      inBook: true,
+    });
+    // Moves with a result token, no headers.
+    expect(findPosition(sampleBook(), "1. d4 d5 2. c4 *")?.ucis).toEqual(["d2d4", "d7d5", "c2c4"]);
+  });
+
+  it("starts a PGN from its FEN header", () => {
+    const pgn = '[SetUp "1"]\n[FEN "4k3/8/8/8/8/8/4P3/4K3 w - - 0 40"]\n\n40. e4 Kd7 *';
+    const hit = findPosition(sampleBook(), pgn)!;
+    expect(hit.startFen).toBe("4k3/8/8/8/8/8/4P3/4K3 w - - 0 40");
+    expect(hit.sans).toEqual(["e4", "Kd7"]);
+    expect(hit.inBook).toBe(false);
+    const state = explore(sampleBook(), hit.ucis, hit.startFen)!;
+    expect(state.fen).toBe("8/3k4/8/8/4P3/8/8/4K3 w - - 1 41");
   });
 
   it("lists lines that start with given moves", () => {
