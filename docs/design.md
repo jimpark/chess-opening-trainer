@@ -1,6 +1,6 @@
 # Chess Opening Trainer: Design
 
-Status: milestone 4 complete, 2026-11-20
+Status: milestone 5 complete, 2026-11-20
 
 ## Goal
 
@@ -79,20 +79,42 @@ A path that leaves the book and transposes back into a book position counts as i
 
 ### Comments
 
-The Lichess dataset has no comments. Comments come from two places:
+The Lichess dataset has no comments. A comment belongs to a move: the position before it (EPD)
+plus the move (UCI). It is shared by every opening and color that reaches that move. Comments
+come from two places:
 
-- PGN import. `{...}` comments in an imported PGN attach to the move that precedes them.
-- A per-move comment field the user edits in the app.
+- PGN import. `{...}` comments before or after a move attach to that move. Embedded commands
+  such as `[%eval]` and `[%csl]` are dropped. An import does not replace an existing comment.
+- The user. Learn and Explore show a "Comment on Nf3" box for the last move played, with "Add a
+  comment" or "Edit". A user edit replaces an imported comment; saving empty text deletes it.
+  Cmd+Enter (Ctrl+Enter) saves, Escape cancels.
+
+Quiz does not show comments, so they cannot give away the next move.
 
 Wikibooks Chess Opening Theory (CC BY-SA) has prose for many positions and is a candidate for a
 later import. It is out of scope for v1.
 
 ### PGN import
 
-The user imports a PGN file, with variations and comments, into a named repertoire. Every
-mainline and variation becomes a line in the graph. Imported moves that already exist in the
-Lichess data reuse the existing positions and edges. Lines without a name inherit the name of the
-deepest named position they pass through, with " (imported)" appended.
+"Import PGN…" in the opening picker takes a name and a PGN file or pasted text
+(`src/core/pgnImport.ts`):
+
+- Every mainline and variation becomes a line from the start. Duplicate move sequences are kept
+  once.
+- The import becomes its own family under the given name, studied like any opening with either
+  color. It is listed first in the picker with an "imported" badge.
+- Each line is named after the deepest Lichess-named position it passes through, with
+  " (imported)" appended, or after the import when it passes none. At positions both share, the
+  Lichess name stays first.
+- Moves already in the Lichess data reuse the existing positions, so transpositions and names
+  work across both.
+- Games with a `FEN` header for another start position, and variations with an illegal move, are
+  left out. The dialog lists what was left out before opening the new family.
+- The name must differ from every existing family.
+
+The PGN text is saved in the database and replayed into the book at startup. Deleting an import
+(✕, then "Delete?" to confirm) removes it with its cards and progress, and reloads the app,
+because the book cannot drop lines it has added.
 
 ## Data model
 
@@ -107,6 +129,7 @@ row ids. Schema version 1, applied by `migrate` through `PRAGMA user_version`:
 
 ```sql
 repertoires   (id, family, color, created_at, UNIQUE (family, color))
+              -- family: a Lichess family or an import name
 cards         (id, repertoire_id, epd, due, stability, difficulty, scheduled_days,
                learning_steps, reps, lapses, state, last_review, UNIQUE (repertoire_id, epd))
 review_log    (id, card_id, rating, state, reviewed_at, move_uci)
@@ -119,8 +142,13 @@ engine_cache  (key, analysis, created_at)
 Opening a family with a color creates its repertoire. The card columns are the fields of a
 `ts-fsrs` 6 card.
 
-Milestone 5 adds `imported_lines (id, repertoire_id, eco, name, pgn)`, replayed into the book at
-startup, and `comments (id, epd, uci, text, source)`.
+Schema version 2 adds:
+
+```sql
+imports  (id, name UNIQUE, pgn, created_at)    -- replayed into the book at startup
+comments (epd, uci, text, source, updated_at, PRIMARY KEY (epd, uci))
+         -- source: 'import' or 'user'
+```
 
 All SQL goes through a two-method `Db` interface (`execute`, `select`, `?` placeholders):
 
@@ -133,14 +161,17 @@ All SQL goes through a two-method `Db` interface (`execute`, `select`, `?` place
 
 ## Search
 
-One search box queries:
+The Explore search box reads the query in this order (`findPosition` in `src/core/explore.ts`):
 
-- Names and ECO codes, in memory: every query word must appear (`najdorf`, `B90`). Done in
-  milestone 1.
-- Move sequences (`e4 c5 Nf3 d6`), matched against line move prefixes.
-- A pasted FEN, matched by EPD, which shows every line that reaches the position.
+- **FEN** (contains "/"): a book position offers "Go to the position after 1. d4 d5 2. c4 e6",
+  using the shortest book line that reaches it, and lists lines that start that way. A position
+  outside the book says so.
+- **Moves**, with or without move numbers (`1. e4 c5 2.Nf3`, `e4 c5 Nf3`): if every move is legal
+  from the start, it offers to go to the position, marked "out of book" when it is, and lists
+  lines that start with those moves.
+- **Names and ECO codes**: every query word must appear (`najdorf`, `B90`).
 
-Results list the line name, ECO code, move sequence and SRS status (new, due, learned).
+Imported lines are included. Results do not show spaced-repetition status yet.
 
 ## Modes
 
@@ -300,7 +331,7 @@ src/
   core/        pure TypeScript, no Tauri imports: book graph (book.ts), Explore queries
                (explore.ts), study tree (study.ts), quiz state and grading (quiz.ts),
                UCI protocol (uci.ts), storage and scheduling (store.ts), review planning
-               (review.ts), later PGN import
+               (review.ts), PGN import (pgnImport.ts)
   platform/    engine transports (engine.ts), database transports (db.ts),
                node:sqlite adapter for tests and the dev server (nodeDb.ts)
   ui/          React components: board, move panel, search, mode screens, engine views
@@ -335,7 +366,7 @@ without the app shell.
 2. Learn and Quiz modes with hints and branch selection. Done.
 3. Stockfish sidecar and wrong-move feedback. Done.
 4. SRS cards, Review mode. Done.
-5. Search by moves and FEN, PGN import, comment editing.
+5. Search by moves and FEN, PGN import, comment editing. Done.
 
 ## Open questions
 

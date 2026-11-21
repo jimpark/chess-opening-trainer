@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DrawShape } from "chessground/draw";
-import type { OpeningBook } from "../core/book";
-import { explore, searchLines } from "../core/explore";
+import { epdOf, replay, type OpeningBook } from "../core/book";
+import { explore, findPosition, linesWithPrefix, searchLines } from "../core/explore";
+import type { Db } from "../core/store";
+import { CommentBox } from "./CommentBox";
 import { Board } from "./Board";
-import { arrow, PositionTitle } from "./common";
+import { arrow, formatMoves, PositionTitle } from "./common";
 import { EngineLines, EvalBar, useAnalysis } from "./engineView";
 
 /** Explore analysis stops at this depth so an idle board does not keep the CPU busy. */
@@ -19,7 +21,7 @@ interface Cursor {
   ply: number;
 }
 
-export function ExploreView({ book }: { book: OpeningBook }) {
+export function ExploreView({ book, db }: { book: OpeningBook; db: Db | undefined }) {
   const [cursor, setCursor] = useState<Cursor>({ moves: [], ply: 0 });
   const [orientation, setOrientation] = useState<"white" | "black">("white");
   const [hovered, setHovered] = useState<string | undefined>();
@@ -28,7 +30,13 @@ export function ExploreView({ book }: { book: OpeningBook }) {
 
   const path = useMemo(() => cursor.moves.slice(0, cursor.ply), [cursor]);
   const state = useMemo(() => explore(book, path)!, [book, path]);
-  const results = useMemo(() => searchLines(book, query), [book, query]);
+  const hit = useMemo(() => findPosition(book, query), [book, query]);
+  const results = useMemo(
+    () => (hit?.ucis ? linesWithPrefix(book, hit.ucis) : hit ? [] : searchLines(book, query)),
+    [book, query, hit],
+  );
+  const lastMove = path.at(-1);
+  const beforeLast = useMemo(() => (path.length > 0 ? epdOf(replay(path.slice(0, -1))!) : undefined), [path]);
   const engine = useAnalysis(engineOn ? state.fen : undefined, { depth: EXPLORE_DEPTH, multipv: 3 }, "explore");
   const best = engine.analysis?.lines[0];
   const allSans = useMemo(() => explore(book, cursor.moves)?.sans ?? [], [book, cursor.moves]);
@@ -110,13 +118,32 @@ export function ExploreView({ book }: { book: OpeningBook }) {
         <input
           className="search"
           type="search"
-          placeholder="Search openings by name or ECO"
+          placeholder="Search by name, ECO, moves (1. e4 c5) or FEN"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
         {query.trim() !== "" ? (
           <ul className="results">
-            {results.length === 0 && <li className="muted">No matches</li>}
+            {hit && (
+              <li>
+                {hit.ucis ? (
+                  <button
+                    className="next"
+                    onClick={() => {
+                      setCursor({ moves: hit.ucis!, ply: hit.ucis!.length });
+                      setQuery("");
+                    }}
+                  >
+                    Go to the position after {formatMoves(hit.sans)}
+                    {!hit.inBook && <span className="warn"> (out of book)</span>}
+                  </button>
+                ) : (
+                  <p className="muted">That position is not in the book.</p>
+                )}
+              </li>
+            )}
+            {hit?.ucis && results.length > 0 && <li className="muted">Lines that start this way:</li>}
+            {!hit && results.length === 0 && <li className="muted">No matches</li>}
             {results.map((l) => (
               <li key={l.id}>
                 <button
@@ -134,6 +161,10 @@ export function ExploreView({ book }: { book: OpeningBook }) {
         ) : (
           <>
             <PositionTitle state={state} fallback={cursor.ply === 0 ? "Starting position" : "Unnamed position"} />
+
+            {lastMove && beforeLast && (
+              <CommentBox db={db} epd={beforeLast} uci={lastMove} san={state.sans.at(-1)!} />
+            )}
 
             <section>
               <h2>Moves</h2>

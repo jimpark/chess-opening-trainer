@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { Color } from "chessops/types";
 import type { OpeningBook } from "../core/book";
 import { countCards } from "../core/review";
-import { repertoireSummaries, type Db, type RepertoireSummary } from "../core/store";
+import { deleteImport, repertoireSummaries, type Db, type RepertoireSummary } from "../core/store";
 import { families } from "../core/study";
+import { ImportDialog } from "./ImportDialog";
 import { LearnView } from "./LearnView";
 import { QuizView } from "./QuizView";
 import { useRepertoire } from "./useRepertoire";
@@ -20,13 +21,30 @@ interface Props {
   db: Db | undefined;
   selection: Selection | undefined;
   onSelect: (s: Selection | undefined) => void;
+  /** Called after a PGN import adds an opening to the book. */
+  onImported: (name: string, color: Color) => void;
 }
 
-export function StudyView({ book, db, selection, onSelect }: Props) {
+export function StudyView({ book, db, selection, onSelect, onImported }: Props) {
   const [color, setColor] = useState<Color>(selection?.color ?? "white");
+  const [importing, setImporting] = useState(false);
+  if (importing && db) {
+    return (
+      <div className="picker">
+        <ImportDialog book={book} db={db} color={color} onImported={onImported} onCancel={() => setImporting(false)} />
+      </div>
+    );
+  }
   if (!selection) {
     return (
-      <OpeningPicker book={book} db={db} color={color} onColor={setColor} onPick={(family) => onSelect({ family, color })} />
+      <OpeningPicker
+        book={book}
+        db={db}
+        color={color}
+        onColor={setColor}
+        onPick={(family) => onSelect({ family, color })}
+        onImport={() => setImporting(true)}
+      />
     );
   }
   return <Study key={`${selection.family}-${selection.color}`} book={book} db={db} selection={selection} onChange={() => onSelect(undefined)} />;
@@ -55,7 +73,7 @@ function Study({ book, db, selection, onChange }: { book: OpeningBook; db: Db | 
       {!rep.loaded ? (
         <p className="loading">Loading…</p>
       ) : mode === "learn" ? (
-        <LearnView book={book} rep={rep} onQuiz={() => setMode("quiz")} />
+        <LearnView book={book} rep={rep} db={db} onQuiz={() => setMode("quiz")} />
       ) : (
         <QuizView book={book} rep={rep} />
       )}
@@ -69,8 +87,10 @@ function OpeningPicker(props: {
   color: Color;
   onColor: (c: Color) => void;
   onPick: (family: string) => void;
+  onImport: () => void;
 }) {
-  const { book, db, color, onColor, onPick } = props;
+  const { book, db, color, onColor, onPick, onImport } = props;
+  const [confirmDelete, setConfirmDelete] = useState<string | undefined>();
   const all = useMemo(() => families(book), [book]);
   const [query, setQuery] = useState("");
   const [summaries, setSummaries] = useState<RepertoireSummary[]>([]);
@@ -84,14 +104,20 @@ function OpeningPicker(props: {
   const shown = useMemo(() => {
     const words = query.toLowerCase().split(/\s+/).filter(Boolean);
     const hits = all.filter((f) => words.every((w) => `${f.eco} ${f.name}`.toLowerCase().includes(w)));
-    // Openings already studied with this color come first.
-    return [...hits.filter((f) => started.has(f.name)), ...hits.filter((f) => !started.has(f.name))];
+    // Imports first, then openings already studied with this color.
+    const rank = (f: (typeof all)[number]) => (f.imported ? 0 : started.has(f.name) ? 1 : 2);
+    return [...hits].sort((a, b) => rank(a) - rank(b));
   }, [all, query, started]);
 
   return (
     <div className="picker">
       <div className="picker-head">
         <h1>Choose an opening</h1>
+        {db && (
+          <button className="link" onClick={onImport}>
+            Import PGN…
+          </button>
+        )}
         <div className="segmented">
           <button className={color === "white" ? "on" : ""} onClick={() => onColor("white")}>Play as White</button>
           <button className={color === "black" ? "on" : ""} onClick={() => onColor("black")}>Play as Black</button>
@@ -115,8 +141,23 @@ function OpeningPicker(props: {
                 <span className="label">{f.name}</span>
                 {s && s.due > 0 && <span className="badge due">{s.due} due</span>}
                 {s && s.due === 0 && s.cards > 0 && <span className="badge">studying</span>}
+                {f.imported && <span className="badge">imported</span>}
                 <span className="muted count">{f.lineCount} {f.lineCount === 1 ? "line" : "lines"}</span>
               </button>
+              {f.imported && db && (
+                <button
+                  className={confirmDelete === f.name ? "delete confirm" : "delete"}
+                  title="Delete this import and its progress"
+                  onClick={() => {
+                    if (confirmDelete !== f.name) return setConfirmDelete(f.name);
+                    // The book has no way to drop lines, so reload to rebuild it without the import.
+                    void deleteImport(db, f.name).then(() => location.reload());
+                  }}
+                  onBlur={() => setConfirmDelete(undefined)}
+                >
+                  {confirmDelete === f.name ? "Delete?" : "✕"}
+                </button>
+              )}
             </li>
           );
         })}

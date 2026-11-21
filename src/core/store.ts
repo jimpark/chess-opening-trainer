@@ -58,6 +58,24 @@ const MIGRATIONS: string[][] = [
        created_at TEXT NOT NULL
      )`,
   ],
+  [
+    // PGN files the user imported. Their lines are added to the book at startup.
+    `CREATE TABLE imports (
+       id INTEGER PRIMARY KEY,
+       name TEXT NOT NULL UNIQUE,
+       pgn TEXT NOT NULL,
+       created_at TEXT NOT NULL
+     )`,
+    // One comment per move, shared by every repertoire. A user edit replaces an imported comment.
+    `CREATE TABLE comments (
+       epd TEXT NOT NULL,
+       uci TEXT NOT NULL,
+       text TEXT NOT NULL,
+       source TEXT NOT NULL CHECK (source IN ('import', 'user')),
+       updated_at TEXT NOT NULL,
+       PRIMARY KEY (epd, uci)
+     )`,
+  ],
 ];
 
 export async function migrate(db: Db): Promise<void> {
@@ -256,6 +274,69 @@ export async function cacheAnalysis(db: Db, key: string, analysis: unknown, now 
   await db.execute("INSERT OR REPLACE INTO engine_cache (key, analysis, created_at) VALUES (?, ?, ?)", [
     key,
     JSON.stringify(analysis),
+    now.toISOString(),
+  ]);
+}
+
+export interface StoredImport {
+  id: number;
+  name: string;
+  pgn: string;
+}
+
+export async function imports(db: Db): Promise<StoredImport[]> {
+  return db.select<StoredImport>("SELECT id, name, pgn FROM imports ORDER BY id");
+}
+
+export async function saveImport(db: Db, name: string, pgn: string, now = new Date()) {
+  await db.execute("INSERT INTO imports (name, pgn, created_at) VALUES (?, ?, ?)", [name, pgn, now.toISOString()]);
+}
+
+/** Deletes an import with its repertoires, cards and progress. Comments stay: they are per move. */
+export async function deleteImport(db: Db, name: string) {
+  const reps = await db.select<{ id: number }>("SELECT id FROM repertoires WHERE family = ?", [name]);
+  for (const { id } of reps) {
+    // Explicit deletes: the SQL plugin's connection pool does not guarantee foreign_keys is on.
+    await db.execute("DELETE FROM review_log WHERE card_id IN (SELECT id FROM cards WHERE repertoire_id = ?)", [id]);
+    await db.execute("DELETE FROM cards WHERE repertoire_id = ?", [id]);
+    await db.execute("DELETE FROM line_progress WHERE repertoire_id = ?", [id]);
+    await db.execute("DELETE FROM repertoires WHERE id = ?", [id]);
+  }
+  await db.execute("DELETE FROM imports WHERE name = ?", [name]);
+}
+
+export interface MoveComment {
+  text: string;
+  source: "import" | "user";
+}
+
+export async function commentFor(db: Db, epd: string, uci: string): Promise<MoveComment | undefined> {
+  const [row] = await db.select<MoveComment>("SELECT text, source FROM comments WHERE epd = ? AND uci = ?", [epd, uci]);
+  return row;
+}
+
+/** Adds imported comments. A move that already has a comment keeps it. */
+export async function addImportedComments(db: Db, comments: { epd: string; uci: string; text: string }[], now = new Date()) {
+  for (const c of comments) {
+    await db.execute("INSERT OR IGNORE INTO comments (epd, uci, text, source, updated_at) VALUES (?, ?, ?, 'import', ?)", [
+      c.epd,
+      c.uci,
+      c.text,
+      now.toISOString(),
+    ]);
+  }
+}
+
+/** Sets the user's comment on a move. Empty text deletes the comment. */
+export async function setComment(db: Db, epd: string, uci: string, text: string, now = new Date()) {
+  if (text.trim() === "") {
+    await db.execute("DELETE FROM comments WHERE epd = ? AND uci = ?", [epd, uci]);
+    return;
+  }
+  await db.execute("INSERT OR REPLACE INTO comments (epd, uci, text, source, updated_at) VALUES (?, ?, ?, 'user', ?)", [
+    epd,
+    uci,
+    text.trim(),
     now.toISOString(),
   ]);
 }

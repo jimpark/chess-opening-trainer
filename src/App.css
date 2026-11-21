@@ -559,3 +559,92 @@ button.primary {
 .review-row button.link {
   margin-left: 0;
 }
+
+/* Import and comments */
+
+.families li {
+  display: flex;
+  align-items: center;
+}
+
+.families li > button:first-child {
+  flex: 1;
+}
+
+button.delete {
+  color: var(--muted);
+  padding: 2px 8px;
+}
+
+button.delete:hover,
+button.delete.confirm {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.picker-head .link {
+  margin-left: auto;
+}
+
+.import {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.import h2 {
+  font-size: 16px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text);
+  margin: 0;
+}
+
+.import p {
+  margin: 0;
+}
+
+.import label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pgn {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px;
+  resize: vertical;
+}
+
+.skipped {
+  list-style: disc;
+  padding-left: 20px;
+}
+
+.comment p {
+  margin: 0 0 6px;
+  white-space: pre-wrap;
+}
+
+.comment textarea {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px;
+}
+
+.comment .controls {
+  margin-top: 4px;
+}

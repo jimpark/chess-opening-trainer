@@ -8,8 +8,12 @@ export interface BookLine {
   id: number;
   eco: string;
   name: string;
-  /** Text before the first colon: "Sicilian Defense" for "Sicilian Defense: Najdorf Variation". */
+  /**
+   * Text before the first colon: "Sicilian Defense" for "Sicilian Defense: Najdorf Variation".
+   * For an imported line, the name of the import.
+   */
   family: string;
+  source: "lichess" | "import";
   sans: string[];
   ucis: string[];
   /** EPD of the position after the last move. */
@@ -59,8 +63,11 @@ export class OpeningBook {
     return this.lines[id];
   }
 
-  /** Adds a line given in SAN. Throws on an illegal or unparseable move. */
-  addLine(eco: string, name: string, sans: string[]): BookLine {
+  /**
+   * Adds a line given in SAN. Throws on an illegal or unparseable move. The family defaults to the
+   * text of the name before the first colon.
+   */
+  addLine(eco: string, name: string, sans: string[], family?: string): BookLine {
     const pos = Chess.default();
     const ucis: string[] = [];
     const normalizedSans: string[] = [];
@@ -89,7 +96,8 @@ export class OpeningBook {
       id,
       eco,
       name,
-      family: name.split(":")[0].trim(),
+      family: family ?? name.split(":")[0].trim(),
+      source: family === undefined ? "lichess" : "import",
       sans: normalizedSans,
       ucis,
       endEpd: current.epd,
@@ -112,6 +120,20 @@ export class OpeningBook {
       if (!best || l.ucis.length < best.ucis.length) best = l;
     }
     return best?.name;
+  }
+
+  /** Name of the deepest position along `sans` that ends a Lichess line. */
+  lichessNameAlong(sans: string[]): string | undefined {
+    const pos = Chess.default();
+    let name: string | undefined;
+    for (const san of sans) {
+      const move = parseSan(pos, san);
+      if (!move) break;
+      pos.play(move);
+      const lichess = this.positions.get(epdOf(pos))?.endingLines.find((id) => this.lines[id].source === "lichess");
+      if (lichess !== undefined) name = this.lines[lichess].name;
+    }
+    return name;
   }
 
   /** Number of distinct named lines that pass through a position. */

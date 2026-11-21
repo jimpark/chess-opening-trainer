@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { OpeningBook } from "./book";
-import { explore, sanLine, searchLines } from "./explore";
+import { explore, findPosition, linesWithPrefix, sanLine, searchLines } from "./explore";
 
 function sampleBook(): OpeningBook {
   const book = new OpeningBook();
@@ -70,5 +70,33 @@ describe("sanLine", () => {
   it("converts UCI to SAN and stops at an illegal move", () => {
     const fen = "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2";
     expect(sanLine(fen, ["g1f3", "b8c6", "f1b5", "a1a8"])).toEqual(["Nf3", "Nc6", "Bb5"]);
+  });
+});
+
+describe("findPosition", () => {
+  it("reads move sequences with or without move numbers", () => {
+    const book = sampleBook();
+    expect(findPosition(book, "1. d4 d5 2.c4")).toEqual({
+      kind: "moves",
+      ucis: ["d2d4", "d7d5", "c2c4"],
+      sans: ["d4", "d5", "c4"],
+      inBook: true,
+    });
+    expect(findPosition(book, "h4")?.inBook).toBe(false);
+    expect(findPosition(book, "declined")).toBeUndefined();
+  });
+
+  it("finds a book position by FEN through its shortest line", () => {
+    const book = sampleBook();
+    const hit = findPosition(book, "rnbqkbnr/ppp2ppp/4p3/3p4/2PP4/8/PP2PPPP/RNBQKBNR w KQkq - 0 3");
+    expect(hit).toEqual({ kind: "fen", ucis: ["d2d4", "d7d5", "c2c4", "e7e6"], sans: ["d4", "d5", "c4", "e6"], inBook: true });
+    expect(findPosition(book, "4k3/8/8/8/8/8/8/4K3 w - - 0 1")).toEqual({ kind: "fen", ucis: undefined, sans: [], inBook: false });
+  });
+
+  it("lists lines that start with given moves", () => {
+    expect(linesWithPrefix(sampleBook(), ["d2d4", "d7d5"]).map((l) => l.name)).toEqual([
+      "Queen's Gambit",
+      "Queen's Gambit Declined",
+    ]);
   });
 });

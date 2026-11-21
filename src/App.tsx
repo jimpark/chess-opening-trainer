@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { lichessBook } from "./bookData";
-import type { Db } from "./core/store";
+import { addImportedLines, linesFromPgn } from "./core/pgnImport";
+import { imports, type Db } from "./core/store";
 import { database } from "./platform/db";
 import { ExploreView } from "./ui/ExploreView";
 import { ReviewView } from "./ui/ReviewView";
@@ -16,12 +17,19 @@ export default function App() {
   const [selection, setSelection] = useState<Selection | undefined>();
   const [db, setDb] = useState<Db | undefined>();
   const [dbReady, setDbReady] = useState(false);
+  /** Incremented when an import adds lines to the book, to rebuild views that read it. */
+  const [bookVersion, setBookVersion] = useState(0);
 
   useEffect(() => {
-    void database().then((d) => {
+    void (async () => {
+      const d = await database();
+      // Imported lines join the book before anything renders it.
+      if (d) {
+        for (const imp of await imports(d)) addImportedLines(book, imp.name, linesFromPgn(imp.pgn).lines);
+      }
       setDb(d);
       setDbReady(true);
-    });
+    })();
   }, []);
 
   if (!dbReady) return <p className="loading">Loading…</p>;
@@ -40,8 +48,19 @@ export default function App() {
         {tabButton("explore", "Explore")}
         {!db && <span className="muted nav-note">Progress is not saved: no database</span>}
       </nav>
-      <main>
-        {tab === "study" && <StudyView book={book} db={db} selection={selection} onSelect={setSelection} />}
+      <main key={bookVersion}>
+        {tab === "study" && (
+          <StudyView
+            book={book}
+            db={db}
+            selection={selection}
+            onSelect={setSelection}
+            onImported={(name, color) => {
+              setBookVersion((v) => v + 1);
+              setSelection({ family: name, color });
+            }}
+          />
+        )}
         {tab === "review" && (
           <ReviewView
             book={book}
@@ -52,7 +71,7 @@ export default function App() {
             }}
           />
         )}
-        {tab === "explore" && <ExploreView book={book} />}
+        {tab === "explore" && <ExploreView book={book} db={db} />}
       </main>
     </div>
   );

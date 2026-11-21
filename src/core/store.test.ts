@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 import { State } from "ts-fsrs";
 import { nodeDb } from "../platform/nodeDb";
 import {
+  addImportedComments,
   addLineProgress,
+  commentFor,
+  deleteImport,
+  imports,
+  saveImport,
+  setComment,
   cacheAnalysis,
   cachedAnalysis,
   cardsOf,
@@ -69,5 +75,35 @@ describe("store", () => {
     expect(await lineProgress(db, rep.id, "completed")).toEqual(new Set());
     await cacheAnalysis(db, "k", { depth: 16 });
     expect(await cachedAnalysis(db, "k")).toEqual({ depth: 16 });
+  });
+});
+
+describe("imports and comments", () => {
+  it("saves and deletes an import with its repertoire data", async () => {
+    const db = nodeDb();
+    await migrate(db);
+    await saveImport(db, "Mine", "1. e4 *");
+    const rep = await repertoireFor(db, "Mine", "white");
+    await recordAnswer(db, rep.id, "x", "good", "e2e4");
+    await addLineProgress(db, rep.id, "seen", "e2e4");
+    expect((await imports(db)).map((i) => i.name)).toEqual(["Mine"]);
+    await expect(saveImport(db, "Mine", "1. d4 *")).rejects.toThrow();
+    await deleteImport(db, "Mine");
+    expect(await imports(db)).toEqual([]);
+    expect(await db.select("SELECT * FROM cards")).toEqual([]);
+    expect(await db.select("SELECT * FROM review_log")).toEqual([]);
+    expect(await db.select("SELECT * FROM repertoires")).toEqual([]);
+  });
+
+  it("keeps the user's comment over an imported one, and deletes on empty text", async () => {
+    const db = nodeDb();
+    await migrate(db);
+    await addImportedComments(db, [{ epd: "p", uci: "e2e4", text: "Best by test." }]);
+    expect(await commentFor(db, "p", "e2e4")).toEqual({ text: "Best by test.", source: "import" });
+    await setComment(db, "p", "e2e4", " My note ");
+    await addImportedComments(db, [{ epd: "p", uci: "e2e4", text: "Other." }]);
+    expect(await commentFor(db, "p", "e2e4")).toEqual({ text: "My note", source: "user" });
+    await setComment(db, "p", "e2e4", "");
+    expect(await commentFor(db, "p", "e2e4")).toBeUndefined();
   });
 });

@@ -1,7 +1,7 @@
 import type { Position } from "chessops/chess";
 import { makeFen, parseFen } from "chessops/fen";
-import { makeSanAndPlay } from "chessops/san";
-import { parseUci } from "chessops/util";
+import { makeSanAndPlay, parseSan } from "chessops/san";
+import { makeUci, parseUci } from "chessops/util";
 import { Chess } from "chessops/chess";
 import { epdOf, type BookLine, type OpeningBook } from "./book";
 
@@ -132,4 +132,58 @@ export function sanLine(fen: string, ucis: string[]): string[] {
     sans.push(makeSanAndPlay(pos.value, move));
   }
   return sans;
+}
+
+export interface PositionHit {
+  kind: "moves" | "fen";
+  /** Moves from the start that reach the position, when the book or the query gives them. */
+  ucis: string[] | undefined;
+  sans: string[];
+  inBook: boolean;
+}
+
+/**
+ * Reads a query as a FEN or a move sequence ("1. e4 c5 2. Nf3", "e4 c5 Nf3"). For a FEN of a
+ * book position, the moves are the shortest book line that reaches it. Returns undefined when the
+ * query is neither.
+ */
+export function findPosition(book: OpeningBook, query: string): PositionHit | undefined {
+  const q = query.trim();
+  if (q.includes("/")) {
+    const setup = parseFen(q);
+    if (setup.isErr) return undefined;
+    const pos = Chess.fromSetup(setup.value);
+    if (pos.isErr) return undefined;
+    const p = book.get(epdOf(pos.value));
+    if (!p) return { kind: "fen", ucis: undefined, sans: [], inBook: false };
+    let best: { lineId: number; ply: number } | undefined;
+    for (const t of p.throughLines) if (!best || t.ply < best.ply) best = t;
+    const line = book.line(best!.lineId);
+    return { kind: "fen", ucis: line.ucis.slice(0, best!.ply), sans: line.sans.slice(0, best!.ply), inBook: true };
+  }
+
+  const tokens = q
+    .replace(/\d+\.(\.\.)?/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+  if (tokens.length === 0) return undefined;
+  const pos = Chess.default();
+  const ucis: string[] = [];
+  const sans: string[] = [];
+  for (const t of tokens) {
+    const move = parseSan(pos, t);
+    if (!move) return undefined;
+    ucis.push(makeUci(move));
+    sans.push(makeSanAndPlay(pos, move));
+  }
+  return { kind: "moves", ucis, sans, inBook: book.get(epdOf(pos)) !== undefined };
+}
+
+/** Lines that begin with `ucis`, shortest first. */
+export function linesWithPrefix(book: OpeningBook, ucis: string[], limit = 50): BookLine[] {
+  const key = ucis.join(" ");
+  return book.lines
+    .filter((l) => l.ucis.length >= ucis.length && l.ucis.slice(0, ucis.length).join(" ") === key)
+    .sort((a, b) => a.ucis.length - b.ucis.length || a.name.localeCompare(b.name))
+    .slice(0, limit);
 }

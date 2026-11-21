@@ -8,16 +8,18 @@ export interface Family {
   lineCount: number;
   /** Lowest ECO code among the family's lines. */
   eco: string;
+  /** True for a PGN the user imported. */
+  imported: boolean;
 }
 
 export function families(book: OpeningBook): Family[] {
   const byName = new Map<string, Family>();
   for (const line of book.lines) {
     const f = byName.get(line.family);
-    if (!f) byName.set(line.family, { name: line.family, lineCount: 1, eco: line.eco });
+    if (!f) byName.set(line.family, { name: line.family, lineCount: 1, eco: line.eco, imported: line.source === "import" });
     else {
       f.lineCount++;
-      if (line.eco < f.eco) f.eco = line.eco;
+      if (line.eco && (!f.eco || line.eco < f.eco)) f.eco = line.eco;
     }
   }
   return [...byName.values()].sort((a, b) => b.lineCount - a.lineCount || a.name.localeCompare(b.name));

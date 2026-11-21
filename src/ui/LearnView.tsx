@@ -6,17 +6,20 @@ import { doneLeafCount, nearestOpenBranch, pathTo, subtreeDone } from "../core/s
 import { Board } from "./Board";
 import { arrow, MoveList, PositionTitle } from "./common";
 import type { RepertoireState } from "./useRepertoire";
+import { CommentBox } from "./CommentBox";
+import type { Db } from "../core/store";
 
 const MAX_ARROWS = 5;
 
 interface Props {
   book: OpeningBook;
   rep: RepertoireState;
+  db: Db | undefined;
   onQuiz: () => void;
 }
 
 /** Walks through every line of an opening. The user picks the branch at each fork. */
-export function LearnView({ book, rep, onQuiz }: Props) {
+export function LearnView({ book, rep, db, onQuiz }: Props) {
   const { tree, color, seen, markLine } = rep;
   const [nodeId, setNodeId] = useState(tree.root.id);
   const [hovered, setHovered] = useState<number | undefined>();
@@ -89,6 +92,8 @@ export function LearnView({ book, rep, onQuiz }: Props) {
           <h2>Moves</h2>
           <MoveList moves={pathTo(node)} currentId={node.id} onSelect={setNodeId} />
         </section>
+
+        {node.parent && <CommentBox db={db} epd={node.parent.epd} uci={node.ucis.at(-1)!} san={node.san} />}
 
         {node.children.length > 0 ? (
           <section>
