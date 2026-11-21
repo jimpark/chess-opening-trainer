@@ -38,8 +38,13 @@ export function ImportDialog({ book, db, color, onImported, onCancel }: Props) {
       return setError(`An opening named "${trimmed}" already exists. Choose another name.`);
     }
     const parsed = linesFromPgn(pgn);
+    if (parsed.lines.length === 0) {
+      setSkipped([]);
+      return setError(
+        parsed.skipped.length > 0 ? `Nothing to import. ${parsed.skipped.join(". ")}.` : "The PGN has no games.",
+      );
+    }
     setSkipped(parsed.skipped);
-    if (parsed.lines.length === 0) return setError("The PGN has no lines from the standard starting position.");
     setBusy(true);
     try {
       await saveImport(db, trimmed, pgn);
