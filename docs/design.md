@@ -1,6 +1,6 @@
 # Chess Opening Trainer: Design
 
-Status: milestone 1 complete, 2026-11-20
+Status: milestone 2 complete, 2026-11-20
 
 ## Goal
 
@@ -146,42 +146,61 @@ F flips the board. Moving back keeps the later moves until a different move is p
 
 The engine evaluation bar is optional and toggled here (milestone 3).
 
+### Study tree
+
+Learn and Quiz work on one family, as a tree of move sequences (`src/core/study.ts`). Each
+family line is a path from the root. A line counts toward progress only if it ends at a leaf: a
+line such as "Sicilian Defense" (1.e4 c5) that other lines extend is covered by them. The Italian
+Game has 187 lines and 114 leaves. Two branches that reach the same position by different move
+orders stay separate in the tree and are linked through an EPD index.
+
+The Study tab opens with an opening picker: all 149 families sorted by line count, a search box,
+and a White or Black toggle.
+
 ### Learn
 
-The user picks an opening and color. The app steps through the moves with arrows, one move per
-"Next" click, and shows the line name and any comment at each step.
+The app steps through the moves with arrows. "Next" (or →) plays the next move; at a branch it
+takes the first branch with unseen lines. The panel lists every branch with its line name and
+seen-out-of-total count, and the user clicks one to follow it instead. Moves played on the board
+also follow a branch when they match one. Clicking a move in the move list returns to it.
 
-At a branch, the panel lists the possible next moves for whichever side is to move. The user
-picks the branch to follow. When a branch ends, the app returns to the most recent branch point
-with unexplored moves, until the whole subtree has been shown. A progress indicator shows lines
-seen out of lines in the opening.
+At the end of a line, "Next unseen line" jumps back to the nearest branch point with unseen
+lines. When every line has been seen, the panel offers to start the quiz. Comments are not shown
+yet (milestone 5).
 
 ### Quiz
 
 The board resets to the start. The app plays the opponent's moves and the user plays their own.
 
 - **Opponent's turn with one book move:** the app plays it.
-- **Opponent's turn with several book moves:** the panel lists them with their line names. The
-  user picks which path to follow. An "Auto" toggle lets the app choose instead, preferring the
-  branch with the most due or new cards.
-- **User's turn with several book moves:** a badge shows "2 other variations". Any of those moves
-  counts as correct. The panel lets the user switch to another variation before moving.
+- **Opponent's turn with several book moves:** the panel lists them with their line names and
+  completed-out-of-total counts. The user picks which path to follow. With "Auto replies" on,
+  the app picks at random, weighted by each branch's uncompleted lines, so main lines come up
+  more often than sidelines. Milestone 4 adds a preference for due cards.
+- **User's turn with several book moves:** the panel says how many book moves there are and lists
+  their line names, without the moves. Any of them counts as correct. Clicking one makes the
+  hint follow it; otherwise the hint follows the first branch with uncompleted lines.
 
 Move outcomes:
 
 | User's move | Result |
 | --- | --- |
-| The move of the current line | Correct. Quiz continues. |
-| A book move from another line, or a move that transposes into a book position | Not an error. The app names the line it leads to and continues there. |
-| Not a book move | "Wrong, try again." The move is taken back. The panel shows the engine evaluation of the move played next to the evaluation of the book move, and the engine's principal variation after the wrong move, as clickable moves. |
+| A book move of this opening at this position | Correct. Quiz continues. |
+| A move that reaches a position elsewhere in this opening's tree (a transposition) | Correct. The app names the line and continues from there. |
+| A book move outside this opening | Not a mistake. "That is a book move (name), but it leaves the opening. Try again." A yellow arrow marks the move, and the board takes it back. |
+| Not a book move | "Wrong. Try again." A red arrow marks the move, and the board takes it back. Milestone 3 adds the engine evaluation of the move played next to the book move's, and the engine's principal variation after the wrong move, as clickable moves. |
 
 Hint button, per user turn:
 
 1. First click highlights the piece to move.
 2. Second click draws the move arrow.
 
-With several book moves, the hint uses the current line's move. A move made after a hint is
-rated "Hard" for SRS. A move made after the full hint is rated "Again".
+Each correct move records a grade for the position: "good" with no mistakes and no hint, "hard"
+after the first hint, "again" after a mistake or the full hint. The panel shows first-try moves
+out of total. Milestone 4 stores the grades as FSRS reviews.
+
+At the end of a line, "Next line" returns to the start with the completed line marked. Completed
+lines last for the session only until milestone 4.
 
 ### Review
 
@@ -221,7 +240,8 @@ The Rust side owns the Stockfish process.
 ```
 src/
   core/        pure TypeScript, no Tauri imports: book graph (book.ts), Explore queries
-               (explore.ts), later the quiz state machine, SRS grading, PGN import
+               (explore.ts), study tree (study.ts), quiz state and grading (quiz.ts),
+               later SRS scheduling and PGN import
   platform/    interfaces (Engine, Storage) and their Tauri implementations
   ui/          React components: board, move panel, search, mode screens
 src-tauri/
@@ -252,7 +272,7 @@ without the app shell.
 
 1. Tauri scaffold, GPL relicense, board, in-memory opening book, Explore mode with name search.
    Done.
-2. Learn and Quiz modes with hints and branch selection.
+2. Learn and Quiz modes with hints and branch selection. Done.
 3. Stockfish sidecar and wrong-move feedback.
 4. SRS cards, Review mode.
 5. Search by moves and FEN, PGN import, comment editing.

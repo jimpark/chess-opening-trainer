@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DrawShape } from "chessground/draw";
 import type { OpeningBook } from "../core/book";
 import { explore, searchLines } from "../core/explore";
-import { Board, uciSquares } from "./Board";
+import { Board } from "./Board";
+import { arrow, PositionTitle } from "./common";
 
 /** Above this many book moves, only the hovered move gets an arrow. */
 const MAX_ARROWS = 5;
@@ -56,10 +57,7 @@ export function ExploreView({ book }: { book: OpeningBook }) {
     () =>
       state.bookMoves
         .filter((m) => m.uci === hovered || state.bookMoves.length <= MAX_ARROWS)
-        .map((m) => {
-          const [orig, dest] = uciSquares(m.uci);
-          return { orig, dest, brush: m.uci === hovered ? "green" : "paleGreen" };
-        }),
+        .map((m) => arrow(m.uci, m.uci === hovered ? "green" : "paleGreen")),
     [state.bookMoves, hovered],
   );
 
@@ -110,25 +108,7 @@ export function ExploreView({ book }: { book: OpeningBook }) {
           </ul>
         ) : (
           <>
-            <header className="title">
-              <h1>
-                {state.eco && <span className="eco">{state.eco}</span>}
-                {state.name ?? (cursor.ply === 0 ? "Starting position" : "Unnamed position")}
-              </h1>
-              {!state.inBook && <p className="warn">Out of book</p>}
-              {state.transpositions.length > 0 && (
-                <p className="muted also">
-                  Also reached from:{" "}
-                  {state.transpositions.slice(0, 3).map((t, i) => (
-                    <span key={i} title={formatMoves(t.sans)}>
-                      {i > 0 && "; "}
-                      {t.name}
-                    </span>
-                  ))}
-                  {state.transpositions.length > 3 && ` +${state.transpositions.length - 3} more`}
-                </p>
-              )}
-            </header>
+            <PositionTitle state={state} fallback={cursor.ply === 0 ? "Starting position" : "Unnamed position"} />
 
             <section>
               <h2>Moves</h2>
@@ -183,8 +163,4 @@ function MoveButton(props: { ply: number; cursor: Cursor; sans: string[]; onClic
       {sans[ply]}
     </button>
   );
-}
-
-function formatMoves(sans: string[]): string {
-  return sans.map((s, i) => (i % 2 === 0 ? `${i / 2 + 1}. ${s}` : s)).join(" ");
 }

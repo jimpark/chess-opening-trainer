@@ -17,7 +17,11 @@ export interface BoardProps {
   orientation: "white" | "black";
   lastMove?: string;
   shapes?: DrawShape[];
-  /** Called with a UCI move. Pawn moves to the last rank promote to a queen. */
+  /** False disables moving pieces. Defaults to true. */
+  interactive?: boolean;
+  /**
+   * Called with a UCI move. If the parent does not change any board prop in response, the board
+   * takes the move back. Pawn moves to the last rank promote to a queen. */
   onMove: (uci: string) => void;
 }
 
@@ -25,11 +29,14 @@ export function uciSquares(uci: string): [Key, Key] {
   return [uci.slice(0, 2) as Key, uci.slice(2, 4) as Key];
 }
 
-export function Board({ pos, fen, orientation, lastMove, shapes, onMove }: BoardProps) {
+export function Board({ pos, fen, orientation, lastMove, shapes, interactive = true, onMove }: BoardProps) {
   const el = useRef<HTMLDivElement>(null);
   const api = useRef<Api | null>(null);
   const onMoveRef = useRef(onMove);
   onMoveRef.current = onMove;
+  const config = useRef<Config>({});
+  /** Incremented each time props are applied, to detect a move the parent ignored. */
+  const applied = useRef(0);
 
   useEffect(() => {
     api.current = Chessground(el.current!, {
@@ -42,28 +49,35 @@ export function Board({ pos, fen, orientation, lastMove, shapes, onMove }: Board
 
   useEffect(() => {
     const turn = pos.turn;
-    const config: Config = {
+    config.current = {
       fen,
       orientation,
       turnColor: turn,
       check: pos.isCheck() ? turn : false,
       lastMove: lastMove ? uciSquares(lastMove) : undefined,
       movable: {
-        color: turn,
+        color: interactive ? turn : undefined,
         dests: chessgroundDests(pos) as Map<Key, Key[]>,
         events: {
           after: (orig, dest) => {
             const piece = pos.board.get(parseSquare(orig)!);
             const rank = dest[1];
             const promotes = piece?.role === "pawn" && (rank === "8" || rank === "1");
+            const before = applied.current;
             onMoveRef.current(`${orig}${dest}${promotes ? "q" : ""}`);
+            setTimeout(() => {
+              if (applied.current === before) api.current?.set(config.current);
+            }, 50);
           },
         },
       },
       drawable: { autoShapes: shapes ?? [] },
     };
-    api.current?.set(config);
-  }, [pos, fen, orientation, lastMove, shapes]);
+    applied.current++;
+    api.current?.set(config.current);
+    // set() does not redraw auto shapes that changed, so apply them separately.
+    api.current?.setAutoShapes(shapes ?? []);
+  }, [pos, fen, orientation, lastMove, shapes, interactive]);
 
   return <div className="board" ref={el} />;
 }
