@@ -1,25 +1,24 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DrawShape } from "chessground/draw";
-import type { Color } from "chessops/types";
 import { replay, type OpeningBook } from "../core/book";
 import { explore } from "../core/explore";
-import { doneLeafCount, nearestOpenBranch, pathTo, subtreeDone, type StudyTree } from "../core/study";
+import { doneLeafCount, nearestOpenBranch, pathTo, subtreeDone } from "../core/study";
 import { Board } from "./Board";
 import { arrow, MoveList, PositionTitle } from "./common";
+import type { RepertoireState } from "./useRepertoire";
 
 const MAX_ARROWS = 5;
 
 interface Props {
   book: OpeningBook;
-  tree: StudyTree;
-  color: Color;
+  rep: RepertoireState;
   onQuiz: () => void;
 }
 
 /** Walks through every line of an opening. The user picks the branch at each fork. */
-export function LearnView({ book, tree, color, onQuiz }: Props) {
+export function LearnView({ book, rep, onQuiz }: Props) {
+  const { tree, color, seen, markLine } = rep;
   const [nodeId, setNodeId] = useState(tree.root.id);
-  const [seen, setSeen] = useState<ReadonlySet<number>>(new Set());
   const [hovered, setHovered] = useState<number | undefined>();
 
   const node = tree.nodes[nodeId];
@@ -32,9 +31,9 @@ export function LearnView({ book, tree, color, onQuiz }: Props) {
   const goTo = useCallback(
     (id: number) => {
       setNodeId(id);
-      if (tree.nodes[id].children.length === 0) setSeen((s) => new Set(s).add(id));
+      if (tree.nodes[id].children.length === 0) markLine("seen", tree.nodes[id]);
     },
-    [tree],
+    [tree, markLine],
   );
 
   const forward = useCallback(() => next && goTo(next.id), [next, goTo]);
@@ -125,6 +124,7 @@ export function LearnView({ book, tree, color, onQuiz }: Props) {
               <>
                 <p>You have seen all {tree.leaves.length} lines.</p>
                 <button className="primary" onClick={onQuiz}>Start the quiz</button>
+                <button className="link" onClick={() => rep.clearLines("seen")}>Mark all lines unseen</button>
               </>
             ) : (
               <button className="primary" onClick={nextLine}>Next unseen line</button>

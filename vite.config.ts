@@ -1,13 +1,15 @@
 import { spawn, type ChildProcess } from "node:child_process";
+import { mkdirSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { defineConfig, type Plugin } from "vite";
+import { nodeDb } from "./src/platform/nodeDb";
 import react from "@vitejs/plugin-react";
 import process from "node:process";
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
 export default defineConfig(() => ({
-  plugins: [react(), devEngine()],
+  plugins: [react(), devBridge()],
 
   // The bundled opening book (about 400 KB of TSV) lands in the main chunk.
   build: { chunkSizeWarningLimit: 1500 },
@@ -36,10 +38,11 @@ export default defineConfig(() => ({
 }));
 
 /**
- * Dev server only: runs the Stockfish sidecar for a page opened in a browser instead of the Tauri
- * window, over the Vite WebSocket. See viteTransport in src/platform/engine.ts.
+ * Dev server only: gives a page opened in a browser, instead of the Tauri window, the Stockfish
+ * sidecar and a SQLite database in .dev-data/, over the Vite WebSocket. See viteTransport in
+ * src/platform/engine.ts and viteDb in src/platform/db.ts.
  */
-function devEngine(): Plugin {
+function devBridge(): Plugin {
   const triples: Record<string, string> = {
     "darwin-arm64": "aarch64-apple-darwin",
     "darwin-x64": "x86_64-apple-darwin",
@@ -51,6 +54,17 @@ function devEngine(): Plugin {
     name: "dev-engine",
     apply: "serve",
     configureServer(server) {
+      mkdirSync(".dev-data", { recursive: true });
+      const db = nodeDb(".dev-data/trainer.db");
+      server.ws.on("db:req", async (d: { id: number; op: "execute" | "select"; sql: string; params: unknown[] }, client) => {
+        try {
+          const result = d.op === "execute" ? await db.execute(d.sql, d.params) : await db.select(d.sql, d.params);
+          client.send("db:res", { id: d.id, result });
+        } catch (e) {
+          client.send("db:res", { id: d.id, error: (e as Error).message });
+        }
+      });
+
       let proc: ChildProcess | undefined;
       server.ws.on("engine:send", (data: { line: string }) => {
         if (!proc) {

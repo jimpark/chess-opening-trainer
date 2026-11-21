@@ -1,6 +1,6 @@
 # Chess Opening Trainer: Design
 
-Status: milestone 3 complete, 2026-11-20
+Status: milestone 4 complete, 2026-11-20
 
 ## Goal
 
@@ -22,7 +22,7 @@ target them.
 | Chess rules and PGN | `chessops` (Lichess, GPL-3.0): move generation, SAN, FEN, PGN with variations and comments |
 | Opening data | Lichess `chess-openings` dataset (CC0), plus PGN import |
 | Storage | Opening book: in memory, built from bundled TSVs at startup. User data: SQLite through `tauri-plugin-sql`. Offline only. |
-| Spaced repetition | FSRS through `ts-fsrs` (MIT) |
+| Spaced repetition | FSRS through `ts-fsrs` 6 (MIT) |
 | Engine | Stockfish 19, bundled as a Tauri sidecar, UCI over stdin/stdout |
 | Project license | GPL-3.0 (changed from MIT; see Licensing) |
 | Tests | Vitest for TypeScript core logic, `cargo test` for the Rust side |
@@ -102,23 +102,34 @@ The opening book lives in memory (`src/core/book.ts`):
 - `BookMove`: UCI, SAN, destination EPD.
 - `BookLine`: id, ECO, name, family, SAN and UCI moves, final EPD.
 
-User data lives in SQLite and refers to positions by EPD and to moves by EPD plus UCI. Imported
-PGN lines are stored there and added to the in-memory book at startup.
+User data lives in SQLite (`src/core/store.ts`) and refers to positions by EPD, never to book
+row ids. Schema version 1, applied by `migrate` through `PRAGMA user_version`:
 
 ```sql
-imported_lines (id, repertoire_id, eco NULL, name, pgn)   -- replayed into the book at startup
-comments       (id, epd, uci, text, source)               -- source: 'import' | 'user'
-repertoires    (id, name, color, family NULL)             -- a family or an imported set
-cards          (id, repertoire_id, epd, color,            -- one per user-to-move position
-                due, stability, difficulty, elapsed_days, scheduled_days,
-                reps, lapses, state, last_review,
-                UNIQUE(repertoire_id, epd))
-review_log     (id, card_id, rating, reviewed_at, move_played_uci)
-engine_cache   (epd, depth, multipv, score_cp, mate, pv_uci, PRIMARY KEY (epd, depth, multipv))
+repertoires   (id, family, color, created_at, UNIQUE (family, color))
+cards         (id, repertoire_id, epd, due, stability, difficulty, scheduled_days,
+               learning_steps, reps, lapses, state, last_review, UNIQUE (repertoire_id, epd))
+review_log    (id, card_id, rating, state, reviewed_at, move_uci)
+line_progress (repertoire_id, kind, line, at, PRIMARY KEY (repertoire_id, kind, line))
+              -- kind: 'seen' (Learn) or 'completed' (Quiz); line: UCI moves to the leaf
+engine_cache  (key, analysis, created_at)
+              -- key: FEN, search options, depth and MultiPV; analysis: JSON
 ```
 
-Choosing a family and color creates a repertoire automatically. An imported PGN creates one
-explicitly.
+Opening a family with a color creates its repertoire. The card columns are the fields of a
+`ts-fsrs` 6 card.
+
+Milestone 5 adds `imported_lines (id, repertoire_id, eco, name, pgn)`, replayed into the book at
+startup, and `comments (id, epd, uci, text, source)`.
+
+All SQL goes through a two-method `Db` interface (`execute`, `select`, `?` placeholders):
+
+- In the app: `@tauri-apps/plugin-sql`, file `trainer.db` in the app config directory
+  (`~/Library/Application Support/com.jimpark.chess-opening-trainer` on macOS).
+- In a browser on the dev server: the Vite bridge runs the same SQL with `node:sqlite` on
+  `.dev-data/trainer.db`.
+- In tests: `node:sqlite` in memory.
+- Without any of these, the app runs and says that progress is not saved.
 
 ## Search
 
@@ -179,7 +190,8 @@ The board resets to the start. The app plays the opponent's moves and the user p
 - **Opponent's turn with several book moves:** the panel lists them with their line names and
   completed-out-of-total counts. The user picks which path to follow. With "Auto replies" on,
   the app picks at random, weighted by each branch's uncompleted lines, so main lines come up
-  more often than sidelines. Milestone 4 adds a preference for due cards.
+  more often than sidelines. Auto replies do not yet prefer branches with due cards; the Review
+  tab covers due cards.
 - **User's turn with several book moves:** the panel says how many book moves there are and lists
   their line names, without the moves. Any of them counts as correct. Clicking one makes the
   hint follow it; otherwise the hint follows the first branch with uncompleted lines.
@@ -207,16 +219,31 @@ the engine line shows that position on the board until the user clicks "Back to 
 
 Each correct move records a grade for the position: "good" with no mistakes and no hint, "hard"
 after the first hint, "again" after a mistake or the full hint. The panel shows first-try moves
-out of total. Milestone 4 stores the grades as FSRS reviews.
+out of total. Each grade is saved to the position's card (see Spaced repetition).
 
 At the end of a line, "Next line" returns to the start with the completed line marked. Completed
-lines last for the session only until milestone 4.
+lines and lines seen in Learn are saved per repertoire. "Start over", shown when every line is
+complete, clears completed lines; Learn has "Mark all lines unseen".
 
 ### Review
 
-Lists due cards across all repertoires. A review session builds the shortest set of lines that
-covers the due cards and plays them as a quiz. Only the due positions update their FSRS state.
-Positions passed along the way do not.
+The Review tab lists every repertoire with learned positions: learned count, due count, or when
+the next card is due. "Review N" starts a session; "Study" opens the opening in the Study tab.
+The opening picker puts openings already studied with the chosen color first, with a "due" or
+"studying" badge.
+
+A session plans its lines once, at the start (`planReview`): greedily, the line covering the most
+uncovered due positions, then the shorter line, until every due position is covered. Each line
+ends right after the user's move at its last due position, so a review never asks for moves past
+what is due. The quiz then follows the line:
+
+- Opponent moves follow the line, without choices.
+- A user move that is book but off the line counts as correct; the panel says "That is also
+  book; this review continues with Nf3", and the board continues on the line.
+- Only positions that already have cards are graded. A position on the way that has no card is
+  not created.
+
+At the end the panel shows first-try moves out of total.
 
 ## Spaced repetition
 
@@ -228,7 +255,15 @@ A card is a position where the user is to move, in a given repertoire. Grading:
 | Correct after one hint | Hard |
 | Wrong at least once, or used the full hint | Again |
 
-"Easy" is not used. The user can reset a card or a whole repertoire.
+"Easy" is not used. Scheduling uses `ts-fsrs` 6 with default parameters and interval fuzz, so a
+new position comes back after 1 to 10 minutes in learning steps, then after days.
+
+An answer changes a card only when the card is new or due, or the answer is "again". A correct
+answer on a card that is not yet due changes nothing: it would stretch the interval without a
+real test. A mistake always counts, since the user has forgotten the move. This rule applies to
+Quiz and Review alike (`shouldRecord`).
+
+Not done: resetting a card or a repertoire, and a setting for target retention.
 
 ## Engine
 
@@ -254,8 +289,9 @@ it for web.
   the app, or a Vite dev server bridge (`devEngine` in `vite.config.ts`) when the UI runs in a
   browser during development.
 - **Depths.** 16 for quiz feedback, which takes under a second; 24 in Explore.
-- **Not done.** Results are not cached; `engine_cache` arrives with SQLite in milestone 4.
-  Threads and hash size are fixed until there is a settings screen.
+- **Cache.** A fixed-depth search that reaches its depth is saved in `engine_cache`, so a repeated
+  quiz mistake or an Explore position already analyzed to depth 24 shows its result at once.
+- **Not done.** Threads and hash size are fixed until there is a settings screen.
 
 ## Architecture
 
@@ -263,8 +299,10 @@ it for web.
 src/
   core/        pure TypeScript, no Tauri imports: book graph (book.ts), Explore queries
                (explore.ts), study tree (study.ts), quiz state and grading (quiz.ts),
-               UCI protocol (uci.ts), later SRS scheduling and PGN import
-  platform/    engine transports (engine.ts), later SQLite storage
+               UCI protocol (uci.ts), storage and scheduling (store.ts), review planning
+               (review.ts), later PGN import
+  platform/    engine transports (engine.ts), database transports (db.ts),
+               node:sqlite adapter for tests and the dev server (nodeDb.ts)
   ui/          React components: board, move panel, search, mode screens, engine views
 src-tauri/
   src/         engine process management, Tauri commands
@@ -296,7 +334,7 @@ without the app shell.
    Done.
 2. Learn and Quiz modes with hints and branch selection. Done.
 3. Stockfish sidecar and wrong-move feedback. Done.
-4. SRS cards, Review mode.
+4. SRS cards, Review mode. Done.
 5. Search by moves and FEN, PGN import, comment editing.
 
 ## Open questions

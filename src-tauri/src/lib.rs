@@ -57,6 +57,7 @@ fn spawn_engine(app: &AppHandle) -> Result<CommandChild, String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_sql::Builder::new().build())
         .manage(Engine::default())
         .invoke_handler(tauri::generate_handler![engine_send])
         .build(tauri::generate_context!())

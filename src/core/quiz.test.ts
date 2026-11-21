@@ -66,7 +66,7 @@ describe("quiz as White", () => {
     s = userMove(tree, book, s, "e2e4");
     expect(s.feedback).toEqual({ kind: "correct" });
     expect(turnOf(tree, s)).toBe("opponent");
-    expect(s.results).toEqual([{ nodeId: 0, grade: "good" }]);
+    expect(s.results).toEqual([{ nodeId: 0, grade: "good", uci: "e2e4" }]);
   });
 
   it("rejects a non-book move and grades the position 'again'", () => {

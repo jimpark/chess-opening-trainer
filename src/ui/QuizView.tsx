@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { DrawShape } from "chessground/draw";
-import type { Color } from "chessops/types";
 import { replay, type OpeningBook } from "../core/book";
 import { explore } from "../core/explore";
 import {
@@ -9,19 +8,21 @@ import {
   hint,
   opponentMove,
   restart,
+  retarget,
   selectVariation,
   startQuiz,
   turnOf,
   userMove,
   type QuizState,
 } from "../core/quiz";
-import { doneLeafCount, pathTo, subtreeDone, type StudyTree } from "../core/study";
+import { doneLeafCount, pathTo, subtreeDone } from "../core/study";
 import { Board } from "./Board";
 import { arrow, circle, MoveList, PositionTitle } from "./common";
 import { lossInPawns, PvMoves, useAnalysis } from "./engineView";
 import { makeFen } from "chessops/fen";
 import { sanLine } from "../core/explore";
 import { formatScore, scoreValue } from "../core/uci";
+import type { RepertoireState } from "./useRepertoire";
 
 /** Search depth for judging a move the user played. */
 const MISTAKE_DEPTH = 16;
@@ -29,15 +30,34 @@ const MISTAKE_DEPTH = 16;
 /** Delay before the app plays the opponent's move, so the user sees it happen. */
 const OPPONENT_DELAY_MS = 500;
 
-interface Props {
-  book: OpeningBook;
-  tree: StudyTree;
-  color: Color;
+export interface ReviewPlan {
+  /** Leaf node ids of the lines to play, in order. */
+  targets: number[];
+  onFinish: () => void;
 }
 
-export function QuizView({ book, tree, color }: Props) {
-  const [s, setS] = useState<QuizState>(() => startQuiz(tree, color));
+interface Props {
+  book: OpeningBook;
+  rep: RepertoireState;
+  /** In a review, the lines to play. Only positions that already have cards are graded. */
+  review?: ReviewPlan;
+}
+
+export function QuizView({ book, rep, review }: Props) {
+  const { tree, color } = rep;
+  const [s, setS] = useState<QuizState>(() =>
+    review ? startQuiz(tree, color, review.targets[0]) : { ...startQuiz(tree, color), done: rep.completed },
+  );
+  const [lineIndex, setLineIndex] = useState(0);
   const [auto, setAuto] = useState(false);
+
+  // Save each new answer to its card.
+  const recorded = useRef(0);
+  useEffect(() => {
+    for (const r of s.results.slice(recorded.current)) rep.record(r, review !== undefined);
+    recorded.current = s.results.length;
+  }, [s.results, rep, review]);
+
   /** Engine line shown on the board, as UCI moves from the current position. */
   const [preview, setPreview] = useState<string[] | undefined>();
   useEffect(() => setPreview(undefined), [s]);
@@ -49,7 +69,13 @@ export function QuizView({ book, tree, color }: Props) {
   const expected = turn === "user" ? expectedChild(tree, s) : undefined;
   const doneCount = doneLeafCount(tree.root, s.done);
   const allDone = doneCount === tree.leaves.length;
-  const opponentChoice = turn === "opponent" && node.children.length > 1 && !auto;
+  const opponentChoice = turn === "opponent" && node.children.length > 1 && !auto && !review;
+
+  // Save a completed line, outside reviews.
+  const { markLine } = rep;
+  useEffect(() => {
+    if (turn === "complete" && !review) markLine("completed", node);
+  }, [turn, node, review, markLine]);
 
   // The app plays the opponent's move when there is one reply, or in auto mode.
   useEffect(() => {
@@ -92,9 +118,11 @@ export function QuizView({ book, tree, color }: Props) {
             {s.hintLevel === 0 ? "Hint: which piece" : "Hint: show move"}
           </button>
           <button onClick={() => setS((cur) => restart(tree, cur))}>Restart line</button>
-          <label className="toggle" title="Let the app choose the opponent's replies">
-            <input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} /> Auto replies
-          </label>
+          {!review && (
+            <label className="toggle" title="Let the app choose the opponent's replies">
+              <input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} /> Auto replies
+            </label>
+          )}
         </div>
       </div>
 
@@ -102,8 +130,17 @@ export function QuizView({ book, tree, color }: Props) {
         <PositionTitle state={info} fallback={node.parent ? "Unnamed position" : "Starting position"} />
 
         <p className="progress">
-          Lines completed: {doneCount} / {tree.leaves.length}
-          <progress value={doneCount} max={tree.leaves.length} />
+          {review ? (
+            <>
+              Review line {Math.min(lineIndex + 1, review.targets.length)} of {review.targets.length}
+              <progress value={lineIndex + (turn === "complete" ? 1 : 0)} max={review.targets.length} />
+            </>
+          ) : (
+            <>
+              Lines completed: {doneCount} / {tree.leaves.length}
+              <progress value={doneCount} max={tree.leaves.length} />
+            </>
+          )}
           {s.results.length > 0 && (
             <span className="muted"> First try: {goodCount} / {s.results.length} moves</span>
           )}
@@ -135,7 +172,10 @@ export function QuizView({ book, tree, color }: Props) {
         {turn === "user" && (
           <section>
             <h2>Your move</h2>
-            {node.children.length > 1 && (
+            {node.children.length > 1 && review && (
+              <p className="muted">{node.children.length} book moves here. This review follows one of them.</p>
+            )}
+            {node.children.length > 1 && !review && (
               <>
                 <p className="muted">
                   {node.children.length} book moves here. Any of them is correct. Pick one to make the hint follow it.
@@ -173,12 +213,43 @@ export function QuizView({ book, tree, color }: Props) {
           </section>
         )}
 
-        {turn === "complete" && (
+        {turn === "complete" && review && (
+          <section className="notice">
+            {lineIndex + 1 < review.targets.length ? (
+              <button
+                className="primary"
+                onClick={() => {
+                  setS((cur) => retarget(tree, cur, review.targets[lineIndex + 1]));
+                  setLineIndex((i) => i + 1);
+                }}
+              >
+                Next line ({lineIndex + 2} of {review.targets.length})
+              </button>
+            ) : (
+              <>
+                <p>
+                  Review complete. First try on {goodCount} of {s.results.length} moves.
+                </p>
+                <button className="primary" onClick={review.onFinish}>Done</button>
+              </>
+            )}
+          </section>
+        )}
+
+        {turn === "complete" && !review && (
           <section className="notice">
             {allDone ? (
               <>
                 <p>All {tree.leaves.length} lines completed.</p>
-                <button className="primary" onClick={() => setS(startQuiz(tree, color))}>Start over</button>
+                <button
+                  className="primary"
+                  onClick={() => {
+                    rep.clearLines("completed");
+                    setS(startQuiz(tree, color));
+                  }}
+                >
+                  Start over
+                </button>
               </>
             ) : (
               <button className="primary" onClick={() => setS((cur) => restart(tree, cur))}>Next line</button>
@@ -196,6 +267,8 @@ function Feedback({ s, family }: { s: QuizState; family: string }) {
   switch (fb.kind) {
     case "correct":
       return <p className="feedback good">Correct.</p>;
+    case "redirected":
+      return <p className="feedback good">Correct. That is also book; this review continues with {fb.san}.</p>;
     case "transposed":
       return <p className="feedback good">Correct. That move order transposes to {fb.name ?? "another line"}.</p>;
     case "otherBook":

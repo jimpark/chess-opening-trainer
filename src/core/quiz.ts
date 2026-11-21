@@ -4,6 +4,8 @@ import { doneLeafCount, nameOf, subtreeDone, type StudyNode, type StudyTree } fr
 
 export type QuizFeedback =
   | { kind: "correct" }
+  /** A correct move off the review line; the quiz continues on the review line. */
+  | { kind: "redirected"; san: string }
   /** The move left the current branch but reached a position elsewhere in the opening. */
   | { kind: "transposed"; name: string | undefined }
   /** The move is in the book but outside this opening. Not counted as a mistake. */
@@ -18,6 +20,8 @@ export interface MoveResult {
   /** Node where the user was to move. */
   nodeId: number;
   grade: Grade;
+  /** The move the user played. */
+  uci: string;
 }
 
 export interface QuizState {
@@ -33,12 +37,15 @@ export interface QuizState {
   /** Leaves of lines completed in this session. */
   done: ReadonlySet<number>;
   results: readonly MoveResult[];
+  /** In a review, the leaf of the line being played. Opponent moves and redirects follow it. */
+  targetId: number | undefined;
 }
 
 export type Turn = "user" | "opponent" | "complete";
 
-export function startQuiz(tree: StudyTree, color: Color): QuizState {
+export function startQuiz(tree: StudyTree, color: Color, targetId?: number): QuizState {
   return {
+    targetId,
     color,
     nodeId: tree.root.id,
     selectedId: undefined,
@@ -52,13 +59,15 @@ export function startQuiz(tree: StudyTree, color: Color): QuizState {
 
 export function turnOf(tree: StudyTree, s: QuizState): Turn {
   const node = tree.nodes[s.nodeId];
-  if (node.children.length === 0) return "complete";
+  if (node.children.length === 0 || s.nodeId === s.targetId) return "complete";
   return node.turn === s.color ? "user" : "opponent";
 }
 
 /** The move the hint points to: the selected variation, else the first branch not yet done. */
 export function expectedChild(tree: StudyTree, s: QuizState): StudyNode | undefined {
   const node = tree.nodes[s.nodeId];
+  const onPath = targetChild(tree, s);
+  if (onPath) return onPath;
   if (s.selectedId !== undefined) return tree.nodes[s.selectedId];
   return node.children.find((c) => !subtreeDone(c, s.done)) ?? node.children[0];
 }
@@ -76,16 +85,22 @@ export function userMove(tree: StudyTree, book: OpeningBook, s: QuizState, uci: 
   const node = tree.nodes[s.nodeId];
 
   const child = node.children.find((c) => c.ucis[c.ucis.length - 1] === uci);
-  if (child) return advance(s, child, { kind: "correct" }, true);
+  const onPath = targetChild(tree, s);
+  if (child && onPath && child !== onPath) return advance(s, onPath, { kind: "redirected", san: onPath.san }, uci);
+  if (child) return advance(s, child, { kind: "correct" }, uci);
 
   const pos = replay([...node.ucis, uci]);
   if (!pos) return s;
   const epd = epdOf(pos);
 
   const same = tree.byEpd.get(epd);
+  if (same && onPath) {
+    const target = same.includes(onPath) ? onPath : undefined;
+    return advance(s, onPath, target ? { kind: "correct" } : { kind: "redirected", san: onPath.san }, uci);
+  }
   if (same) {
     const target = same.find((n) => !subtreeDone(n, s.done)) ?? same[0];
-    return advance(s, target, { kind: "transposed", name: nameOf(target) }, true);
+    return advance(s, target, { kind: "transposed", name: nameOf(target) }, uci);
   }
 
   if (book.get(epd)) {
@@ -97,7 +112,7 @@ export function userMove(tree: StudyTree, book: OpeningBook, s: QuizState, uci: 
 
 export function opponentMove(tree: StudyTree, s: QuizState, childId: number): QuizState {
   if (turnOf(tree, s) !== "opponent") return s;
-  return advance(s, tree.nodes[childId], undefined, false);
+  return advance(s, tree.nodes[childId], undefined, undefined);
 }
 
 /**
@@ -106,6 +121,8 @@ export function opponentMove(tree: StudyTree, s: QuizState, childId: number): Qu
  * by all lines.
  */
 export function autoOpponentChild(tree: StudyTree, s: QuizState, random = Math.random): StudyNode {
+  const onPath = targetChild(tree, s);
+  if (onPath) return onPath;
   const children = tree.nodes[s.nodeId].children;
   let weights = children.map((c) => c.leafCount - doneLeafCount(c, s.done));
   if (weights.every((w) => w === 0)) weights = children.map((c) => c.leafCount);
@@ -122,6 +139,20 @@ export function restart(tree: StudyTree, s: QuizState): QuizState {
   return { ...s, nodeId: tree.root.id, selectedId: undefined, hintLevel: 0, mistakesHere: 0, feedback: undefined };
 }
 
+/** The child of the current node on the way to the review target, if there is a target. */
+export function targetChild(tree: StudyTree, s: QuizState): StudyNode | undefined {
+  if (s.targetId === undefined) return undefined;
+  const depth = tree.nodes[s.nodeId].ucis.length;
+  let n: StudyNode | undefined = tree.nodes[s.targetId];
+  while (n && n.ucis.length > depth + 1) n = n.parent;
+  return n && n.parent?.id === s.nodeId ? n : undefined;
+}
+
+/** Starts the next review line, keeping results. */
+export function retarget(tree: StudyTree, s: QuizState, targetId: number): QuizState {
+  return { ...restart(tree, s), targetId };
+}
+
 export function gradeOf(mistakes: number, hintLevel: number): Grade {
   if (mistakes > 0 || hintLevel >= 2) return "again";
   if (hintLevel === 1) return "hard";
@@ -132,15 +163,17 @@ function advance(
   s: QuizState,
   target: StudyNode,
   feedback: QuizFeedback | undefined,
-  byUser: boolean,
+  /** The user's move, or undefined for an opponent move. */
+  userUci: string | undefined,
 ): QuizState {
-  const results = byUser
-    ? [...s.results, { nodeId: s.nodeId, grade: gradeOf(s.mistakesHere, s.hintLevel) }]
+  const results = userUci
+    ? [...s.results, { nodeId: s.nodeId, grade: gradeOf(s.mistakesHere, s.hintLevel), uci: userUci }]
     : s.results;
   let done = s.done;
-  if (target.children.length === 0) {
+  if (target.children.length === 0 || target.id === s.targetId) {
     done = new Set(done).add(target.id);
-    feedback = { kind: "complete", name: nameOf(target) };
+    // Keep "redirected" visible when the last user move was redirected.
+    if (feedback?.kind !== "redirected") feedback = { kind: "complete", name: nameOf(target) };
   }
   return {
     ...s,

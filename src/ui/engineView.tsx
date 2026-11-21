@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { sanLine } from "../core/explore";
 import { formatScore, type Analysis, type AnalyzeOptions, type Score } from "../core/uci";
+import { cacheAnalysis, cachedAnalysis } from "../core/store";
+import { database } from "../platform/db";
 import { engine } from "../platform/engine";
 
 export interface AnalysisState {
@@ -11,7 +13,8 @@ export interface AnalysisState {
 
 /**
  * Runs the engine on `fen` while it is defined. A new fen or option set stops the previous search.
- * `key` identifies the options, so callers need not memoize them.
+ * `key` identifies the options, so callers need not memoize them. A search with a depth limit
+ * that reaches its depth is cached in the database and reused.
  */
 export function useAnalysis(fen: string | undefined, options: Omit<AnalyzeOptions, "onUpdate">, key: string): AnalysisState {
   const eng = engine();
@@ -22,16 +25,29 @@ export function useAnalysis(fen: string | undefined, options: Omit<AnalyzeOption
     setAnalysis(undefined);
     if (!eng || !fen) return;
     let live = true;
+    let search: ReturnType<typeof eng.analyze> | undefined;
+    const depth = options.depth;
+    const cacheKey = depth ? `${fen}|${key}|${depth}|${options.multipv ?? 1}` : undefined;
     setRunning(true);
-    const search = eng.analyze(fen, { ...options, onUpdate: (a) => live && setAnalysis(a) });
-    void search.result.then((a) => {
+    void (async () => {
+      const db = cacheKey ? await database() : undefined;
+      const hit = db && cacheKey ? await cachedAnalysis<Analysis>(db, cacheKey) : undefined;
+      if (!live) return;
+      if (hit) {
+        setAnalysis(hit);
+        setRunning(false);
+        return;
+      }
+      search = eng.analyze(fen, { ...options, onUpdate: (a) => live && setAnalysis(a) });
+      const a = await search.result;
+      if (db && cacheKey && depth && a.depth >= depth && a.lines.length > 0) void cacheAnalysis(db, cacheKey, a);
       if (!live) return;
       if (a.lines.length > 0) setAnalysis(a);
       setRunning(false);
-    });
+    })();
     return () => {
       live = false;
-      search.stop();
+      search?.stop();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eng, fen, key]);
