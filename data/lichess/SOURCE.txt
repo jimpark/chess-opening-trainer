@@ -1,0 +1,3 @@
+Source: https://github.com/lichess-org/chess-openings
+Commit: 48a8c0e733facfdc9a3723fe882e51ec28014074
+License: CC0 1.0 (see COPYING.txt)
