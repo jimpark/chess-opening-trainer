@@ -735,3 +735,77 @@ button.delete.confirm {
   margin-left: 0;
   padding: 0;
 }
+
+/* Setup */
+
+.setup-hint {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+
+.palette {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.palette-row {
+  display: flex;
+  gap: 4px;
+}
+
+.palette button {
+  width: 46px;
+  height: 46px;
+  padding: 2px;
+  border-color: var(--border);
+  background: var(--bg);
+}
+
+.palette button:hover {
+  background: var(--hover);
+}
+
+.palette button.on {
+  background: var(--current);
+  border-color: var(--accent);
+}
+
+.cg-wrap.palette piece {
+  position: static;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.castling {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.castling > div {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.castling-side {
+  width: 44px;
+}
+
+.castling label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fen {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.analyze .warn {
+  margin: 8px 0 0;
+}

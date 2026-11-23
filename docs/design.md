@@ -185,6 +185,30 @@ Explore can also start from any position, not only the standard start:
   breaks.
 - "Back to the standard start" leaves a set-up position.
 
+## Setup
+
+The Setup tab builds a position by hand (`src/ui/SetupView.tsx`, rules in `src/core/setup.ts`):
+
+- A palette beside the board holds the six pieces of each color. Clicking a piece selects it, and
+  each click on a square places it; clicking a square that already holds that piece removes it.
+  A piece can also be dragged from the palette onto a square; a drag does not change the tool.
+  The Erase tool removes pieces.
+  "Move" (or Esc) returns to dragging pieces around the board; dragging one off the board
+  removes it.
+- Side to move is White or Black. Castling rights turn on when a king and rook stand on their
+  starting squares, and checkboxes turn them off. There is no en passant square, and the move
+  number is 1.
+- "Analyze in Explore" opens the position in Explore with the engine on. A book position opens as
+  the moves of the shortest book line that reaches it, as a pasted FEN does. The button is
+  disabled, with the reason shown, when a side does not have exactly one king, a pawn stands on
+  the first or eighth rank, the side not to move is in check, or a side has more material than
+  promotions can give (Stockfish exits on such positions). Each pawn, and each queen past the
+  first or rook, bishop or knight past the second, counts against the side's eight pawns. A
+  pasted FEN in Explore follows the same material rule.
+- "Edit position" in Explore loads the current Explore position into Setup.
+- Clear removes every piece and turns castling rights back to automatic.
+- The board is not saved when the app quits, and a PGN import resets it, as it resets Explore.
+
 ## Modes
 
 ### Explore

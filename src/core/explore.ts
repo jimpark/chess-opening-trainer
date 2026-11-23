@@ -5,6 +5,7 @@ import { makeSanAndPlay, parseSan } from "chessops/san";
 import { makeUci, parseUci } from "chessops/util";
 import { Chess } from "chessops/chess";
 import { epdOf, type BookLine, type OpeningBook } from "./book";
+import { excessMaterial } from "./setup";
 
 export interface ExploreMove {
   uci: string;
@@ -36,11 +37,14 @@ export interface ExploreState {
   transpositions: Transposition[];
 }
 
-/** The position a FEN describes, or the standard start without one. Undefined for an invalid FEN. */
+/**
+ * The position a FEN describes, or the standard start without one. Undefined for an invalid FEN,
+ * including one with more material than promotions can give, which the engine cannot analyze.
+ */
 export function startPosition(startFen?: string): Position | undefined {
   if (!startFen) return Chess.default();
   const setup = parseFen(startFen);
-  if (setup.isErr) return undefined;
+  if (setup.isErr || excessMaterial(setup.value.board)) return undefined;
   const pos = Chess.fromSetup(setup.value);
   return pos.isErr ? undefined : pos.value;
 }

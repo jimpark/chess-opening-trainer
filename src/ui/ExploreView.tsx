@@ -25,6 +25,8 @@ interface Cursor {
 
 /** A position another tab asks Explore to show; a new `id` repeats a request for the same moves. */
 export interface ExploreRequest {
+  /** Start position when it is not the standard one. */
+  startFen?: string;
   ucis: string[];
   /** The side the user studies, shown at the bottom. */
   orientation: "white" | "black";
@@ -38,9 +40,11 @@ interface Props {
   active: boolean;
   /** Shows this position with the engine on, replacing the current moves. */
   request?: ExploreRequest;
+  /** Opens a FEN in the Setup tab for editing. */
+  onEdit: (fen: string, orientation: "white" | "black") => void;
 }
 
-export function ExploreView({ book, db, active, request }: Props) {
+export function ExploreView({ book, db, active, request, onEdit }: Props) {
   const [cursor, setCursor] = useState<Cursor>({ moves: [], ply: 0 });
   const [orientation, setOrientation] = useState<"white" | "black">("white");
   const [hovered, setHovered] = useState<string | undefined>();
@@ -49,7 +53,7 @@ export function ExploreView({ book, db, active, request }: Props) {
 
   useEffect(() => {
     if (!request) return;
-    setCursor({ moves: request.ucis, ply: request.ucis.length });
+    setCursor({ startFen: request.startFen, moves: request.ucis, ply: request.ucis.length });
     setOrientation(request.orientation);
     setQuery("");
     setEngineOn(true);
@@ -167,6 +171,9 @@ export function ExploreView({ book, db, active, request }: Props) {
             title={engine.available ? "Stockfish analysis (E)" : "No engine available"}
           >
             Engine
+          </button>
+          <button onClick={() => onEdit(state.fen, orientation)} title="Edit this position in the Setup tab">
+            Edit position
           </button>
         </div>
       </div>
